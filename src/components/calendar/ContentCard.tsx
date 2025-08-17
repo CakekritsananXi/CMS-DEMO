@@ -1,0 +1,77 @@
+import React from 'react';
+import { useDrag } from 'react-dnd';
+import { FileText, Instagram, Mail, Clock } from 'lucide-react';
+
+interface ContentCardProps {
+  title: string;
+  type: 'blog' | 'social' | 'email';
+  status: 'draft' | 'scheduled' | 'review';
+  dueDate: string;
+  pillar: string;
+}
+
+const ContentCard: React.FC<ContentCardProps> = ({ title, type, status, dueDate, pillar }) => {
+  const [{ isDragging }, drag] = useDrag({
+    type: 'content',
+    item: { title, type, status },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  });
+
+  const getTypeIcon = () => {
+    switch (type) {
+      case 'blog':
+        return <FileText className="w-4 h-4" />;
+      case 'social':
+        return <Instagram className="w-4 h-4" />;
+      case 'email':
+        return <Mail className="w-4 h-4" />;
+      default:
+        return <FileText className="w-4 h-4" />;
+    }
+  };
+
+  const getStatusColor = () => {
+    switch (status) {
+      case 'draft':
+        return 'bg-amber-100 text-amber-700 border-amber-200';
+      case 'scheduled':
+        return 'bg-sage/10 text-sage border-sage/20';
+      case 'review':
+        return 'bg-blue-100 text-blue-700 border-blue-200';
+      default:
+        return 'bg-neutral-100 text-neutral-700 border-neutral-200';
+    }
+  };
+
+  return (
+    <div
+      ref={drag}
+      className={`bg-white rounded-xl p-4 shadow-soft border border-neutral-100 cursor-move transition-all duration-250 hover:shadow-medium ${
+        isDragging ? 'opacity-50 scale-95' : ''
+      }`}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center space-x-2">
+          <div className="w-8 h-8 bg-neutral-100 rounded-lg flex items-center justify-center">
+            {getTypeIcon()}
+          </div>
+          <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${getStatusColor()}`}>
+            {status}
+          </span>
+        </div>
+      </div>
+
+      <h3 className="font-medium text-neutral-900 mb-2">{title}</h3>
+      <p className="text-sm text-neutral-600 mb-3">{pillar}</p>
+      
+      <div className="flex items-center text-xs text-neutral-500">
+        <Clock className="w-3 h-3 mr-1" />
+        Due {dueDate}
+      </div>
+    </div>
+  );
+};
+
+export default ContentCard;
