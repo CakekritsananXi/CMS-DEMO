@@ -48,6 +48,19 @@ const Dashboard = () => {
   ]);
 
   const [timeRange, setTimeRange] = useState('month');
+  const [showMobileOptimizations, setShowMobileOptimizations] = useState(false);
+  const analytics = useAnalytics();
+  const deviceCapabilities = getDeviceCapabilities();
+
+  // Track dashboard visit
+  useEffect(() => {
+    analytics.trackPageView('/dashboard');
+    analytics.trackEvent('dashboard_loaded', 'page_view', {
+      device_type: deviceCapabilities.device_type,
+      is_mobile: deviceCapabilities.isMobile,
+      viewport_size: `${deviceCapabilities.viewport.width}x${deviceCapabilities.viewport.height}`
+    });
+  }, [analytics, deviceCapabilities]);
 
   // Calculate dashboard metrics
   const currentMonth = new Date();
