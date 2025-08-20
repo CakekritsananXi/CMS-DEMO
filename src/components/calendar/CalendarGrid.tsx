@@ -23,6 +23,7 @@ interface CalendarGridProps {
   onContentMove?: (contentId: string, newDate: Date) => void;
   onContentEdit?: (contentId: string) => void;
   onContentDelete?: (contentId: string) => void;
+  onContentDuplicate?: (contentId: string) => void;
 }
 
 const CalendarGrid: React.FC<CalendarGridProps> = ({
