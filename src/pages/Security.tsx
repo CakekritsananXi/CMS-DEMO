@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, AlertTriangle, CheckCircle, Clock, Play, StopCircle, FileText, Settings, Zap, Bug, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Shield, AlertTriangle, CheckCircle, Clock, Play, StopCircle, FileText, Settings, Zap, Bug, TrendingUp, TrendingDown, Minus, X } from 'lucide-react';
 import { securityService, ScanResult, SecurityMetrics, Vulnerability } from '../services/security';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { Loading, LoadingOverlay } from '../components/Loading';
+import AutomatedScanning from '../components/security/AutomatedScanning';
 
 const Security: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'scans' | 'reports' | 'settings'>('dashboard');
