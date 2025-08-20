@@ -1,11 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { useAuth } from './AuthContext';
-import { 
-  collaborationService, 
-  UserPresence, 
-  Comment, 
-  LiveEdit, 
-  CollaborationEvent 
+import {
+  collaborationService,
+  UserPresence,
+  Comment,
+  LiveEdit,
+  CollaborationEvent
 } from '../services/collaboration';
 
 interface CollaborationContextType {
