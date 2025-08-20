@@ -58,7 +58,7 @@ class SecurityService {
 
   constructor(config: ZAPConfig = {
     baseUrl: 'http://localhost:8080',
-    apiKey: process.env.REACT_APP_ZAP_API_KEY
+    apiKey: import.meta.env.VITE_ZAP_API_KEY
   }) {
     this.config = config;
   }
