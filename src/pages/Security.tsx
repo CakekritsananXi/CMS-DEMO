@@ -511,6 +511,7 @@ const Security: React.FC = () => {
         <div className="min-h-[600px]">
           {activeTab === 'dashboard' && renderDashboard()}
           {activeTab === 'scans' && renderScans()}
+          {activeTab === 'automated' && <AutomatedScanning />}
           {activeTab === 'reports' && renderReports()}
           {activeTab === 'settings' && renderSettings()}
         </div>
