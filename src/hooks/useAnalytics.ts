@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { trackingService, AnalyticsEvent } from '../services/tracking';
 import { getDeviceCapabilities } from '../utils/mobile';
 
@@ -222,31 +222,6 @@ export function useAnalytics(options: UseAnalyticsOptions = {}): AnalyticsHook {
     trackError,
     trackPerformance: trackPerformanceMetrics,
     setUserId
-  };
-}
-
-// Higher-order component for automatic analytics tracking
-export function withAnalytics<P extends object>(
-  WrappedComponent: React.ComponentType<P>,
-  componentName: string,
-  options: UseAnalyticsOptions = {}
-) {
-  return function AnalyticsWrappedComponent(props: P) {
-    const analytics = useAnalytics(options);
-
-    useEffect(() => {
-      analytics.trackEvent('component_mount', 'engagement', {
-        component_name: componentName
-      });
-
-      return () => {
-        analytics.trackEvent('component_unmount', 'engagement', {
-          component_name: componentName
-        });
-      };
-    }, [analytics]);
-
-    return <WrappedComponent {...props} />;
   };
 }
 
