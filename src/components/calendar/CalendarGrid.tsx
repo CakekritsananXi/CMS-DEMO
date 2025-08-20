@@ -2,14 +2,44 @@ import React, { useState } from 'react';
 import { useDrop } from 'react-dnd';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
 
+interface ContentItem {
+  id: string;
+  title: string;
+  type: 'blog' | 'social' | 'email' | 'video' | 'podcast';
+  status: 'draft' | 'scheduled' | 'review' | 'in-progress' | 'approved' | 'published';
+  scheduledDate: string;
+  scheduledTime: string;
+  pillar: string;
+  description?: string;
+  priority?: string;
+  assignee?: string;
+}
+
 interface CalendarGridProps {
   view: 'month' | 'week' | 'day';
   currentDate: Date;
   onDateClick?: (date: Date) => void;
+  contentItems?: ContentItem[];
+  onContentMove?: (contentId: string, newDate: Date) => void;
+  onContentEdit?: (contentId: string) => void;
+  onContentDelete?: (contentId: string) => void;
+  onContentDuplicate?: (contentId: string) => void;
 }
 
-const CalendarGrid: React.FC<CalendarGridProps> = ({ view, currentDate, onDateClick }) => {
-  const [draggedContent, setDraggedContent] = useState<any>(null);
+const CalendarGrid: React.FC<CalendarGridProps> = ({
+  view,
+  currentDate,
+  onDateClick,
+  contentItems = [],
+  onContentMove,
+  onContentEdit,
+  onContentDelete,
+  onContentDuplicate
+}) => {
+  const getContentForDate = (date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    return contentItems.filter(item => item.scheduledDate === dateStr);
+  };
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -63,9 +93,15 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({ view, currentDate, onDateCl
                 isCurrentMonth={isCurrentMonth}
                 isToday={isToday}
                 onDateClick={onDateClick}
+                contentItems={getContentForDate(day)}
                 onContentDrop={(content) => {
-                  console.log('Content dropped on', format(day, 'yyyy-MM-dd'), content);
+                  if (onContentMove) {
+                    onContentMove(content.id, day);
+                  }
                 }}
+                onContentEdit={onContentEdit}
+                onContentDelete={onContentDelete}
+                onContentDuplicate={onContentDuplicate}
               />
             );
           })}
@@ -77,7 +113,7 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({ view, currentDate, onDateCl
   if (view === 'week') {
     return (
       <div className="p-3 sm:p-6 overflow-x-auto">
-        <div className="grid grid-cols-8 gap-1">
+        <div className="grid grid-cols-8 gap-1 min-w-[800px]">
           <div className="p-3"></div>
           {weekDays.map((day) => (
             <div key={day.toISOString()} className="p-3 text-center">
@@ -85,26 +121,50 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({ view, currentDate, onDateCl
                 {format(day, 'EEE')}
               </div>
               <div className={`text-lg font-semibold mt-1 ${
-                day.toDateString() === new Date().toDateString() 
-                  ? 'text-sage' 
+                day.toDateString() === new Date().toDateString()
+                  ? 'text-sage'
                   : 'text-neutral-700'
               }`}>
                 {format(day, 'd')}
               </div>
             </div>
           ))}
-          
+
           {Array.from({ length: 24 }, (_, hour) => (
             <React.Fragment key={hour}>
-              <div className="p-2 text-xs text-neutral-500 text-right border-r border-neutral-100">
+              <div className="p-2 text-xs text-neutral-500 text-right border-r border-neutral-100 sticky left-0 bg-white z-10">
                 {format(new Date().setHours(hour, 0, 0, 0), 'ha')}
               </div>
-              {weekDays.map((day) => (
-                <div
-                  key={`${day.toISOString()}-${hour}`}
-                  className="min-h-[60px] border border-neutral-100 hover:bg-neutral-50 transition-colors duration-200"
-                />
-              ))}
+              {weekDays.map((day) => {
+                const dayContent = getContentForDate(day).filter(item => {
+                  const itemHour = parseInt(item.scheduledTime.split(':')[0]);
+                  return itemHour === hour;
+                });
+
+                return (
+                  <div
+                    key={`${day.toISOString()}-${hour}`}
+                    className="min-h-[60px] border border-neutral-100 hover:bg-neutral-50 transition-colors duration-200 p-1 relative"
+                    onClick={() => onDateClick && onDateClick(day)}
+                  >
+                    {dayContent.map((item) => (
+                      <div
+                        key={item.id}
+                        className={`text-xs p-1 rounded border cursor-pointer hover:scale-105 transition-all duration-200 mb-1 ${
+                          getTypeColor(item.type)
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onContentEdit) onContentEdit(item.id);
+                        }}
+                      >
+                        <div className="font-medium truncate">{item.title}</div>
+                        <div className="text-xs opacity-70">{item.scheduledTime}</div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
             </React.Fragment>
           ))}
         </div>
@@ -113,24 +173,97 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({ view, currentDate, onDateCl
   }
 
   if (view === 'day') {
+    const dayContent = getContentForDate(currentDate);
+
     return (
       <div className="p-3 sm:p-6">
         <div className="text-center mb-6">
           <h3 className="text-xl sm:text-2xl font-bold text-neutral-900">
             {format(currentDate, 'EEEE, MMMM d, yyyy')}
           </h3>
+          <p className="text-neutral-600 mt-2">
+            {dayContent.length} {dayContent.length === 1 ? 'item' : 'items'} scheduled
+          </p>
         </div>
-        
-        <div className="grid grid-cols-2 gap-1">
+
+        <div className="max-w-2xl mx-auto">
           <div className="space-y-1">
-            {Array.from({ length: 24 }, (_, hour) => (
-              <div key={hour} className="flex items-center">
-                <div className="w-12 sm:w-16 text-xs text-neutral-500 text-right pr-2 sm:pr-4">
-                  {format(new Date().setHours(hour, 0, 0, 0), 'ha')}
+            {Array.from({ length: 24 }, (_, hour) => {
+              const hourContent = dayContent.filter(item => {
+                const itemHour = parseInt(item.scheduledTime.split(':')[0]);
+                return itemHour === hour;
+              });
+
+              return (
+                <div key={hour} className="flex items-start">
+                  <div className="w-16 sm:w-20 text-xs text-neutral-500 text-right pr-4 py-2 sticky left-0">
+                    {format(new Date().setHours(hour, 0, 0, 0), 'ha')}
+                  </div>
+                  <div
+                    className="flex-1 min-h-[60px] border border-neutral-100 hover:bg-neutral-50 transition-colors duration-200 rounded-lg p-2 cursor-pointer"
+                    onClick={() => {
+                      if (onDateClick) {
+                        const clickDate = new Date(currentDate);
+                        clickDate.setHours(hour, 0, 0, 0);
+                        onDateClick(clickDate);
+                      }
+                    }}
+                  >
+                    {hourContent.length === 0 ? (
+                      <div className="text-neutral-300 text-xs py-4 text-center">
+                        No events scheduled
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {hourContent.map((item) => (
+                          <div
+                            key={item.id}
+                            className={`p-3 rounded-lg border cursor-pointer hover:scale-105 transition-all duration-200 group ${
+                              getTypeColor(item.type)
+                            }`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (onContentEdit) onContentEdit(item.id);
+                            }}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="font-medium">{item.title}</div>
+                              <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (onContentDuplicate) onContentDuplicate(item.id);
+                                  }}
+                                  className="text-blue-500 hover:text-blue-700 transition-colors"
+                                  title="Duplicate"
+                                >
+                                  ⧉
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (onContentDelete) onContentDelete(item.id);
+                                  }}
+                                  className="text-red-500 hover:text-red-700 transition-colors"
+                                  title="Delete"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            </div>
+                            <div className="text-sm opacity-80 mb-2">{item.description || 'No description'}</div>
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="opacity-60">{item.type} • {item.pillar}</span>
+                              <span className="font-medium">{item.scheduledTime}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex-1 min-h-[40px] sm:min-h-[60px] border border-neutral-100 hover:bg-neutral-50 transition-colors duration-200 rounded-lg" />
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
@@ -151,13 +284,28 @@ interface CalendarDayProps {
   isCurrentMonth: boolean;
   isToday: boolean;
   onDateClick?: (date: Date) => void;
+  contentItems?: ContentItem[];
   onContentDrop?: (content: any) => void;
+  onContentEdit?: (contentId: string) => void;
+  onContentDelete?: (contentId: string) => void;
+  onContentDuplicate?: (contentId: string) => void;
 }
 
-const CalendarDay: React.FC<CalendarDayProps> = ({ date, isCurrentMonth, isToday, onDateClick, onContentDrop }) => {
+const CalendarDay: React.FC<CalendarDayProps> = ({
+  date,
+  isCurrentMonth,
+  isToday,
+  onDateClick,
+  contentItems = [],
+  onContentDrop,
+  onContentEdit,
+  onContentDelete,
+  onContentDuplicate
+}) => {
   const [{ isOver }, drop] = useDrop({
-    accept: 'content',
-    drop: (item) => {
+    accept: ['content', 'content-card'],
+    drop: (item: any) => {
+      console.log('Dropping item:', item, 'on date:', format(date, 'yyyy-MM-dd'));
       if (onContentDrop) {
         onContentDrop(item);
       }
@@ -167,11 +315,22 @@ const CalendarDay: React.FC<CalendarDayProps> = ({ date, isCurrentMonth, isToday
     }),
   });
 
-  const sampleContent = date.getDate() % 7 === 0 && isCurrentMonth ? {
-    title: 'Blog Post',
-    type: 'blog',
-    time: '2:00 PM',
-  } : null;
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'blog':
+        return 'bg-warm-blue/10 text-warm-blue border-warm-blue/20';
+      case 'social':
+        return 'bg-dusty-purple/10 text-dusty-purple border-dusty-purple/20';
+      case 'email':
+        return 'bg-warm-amber/10 text-warm-amber border-warm-amber/20';
+      case 'video':
+        return 'bg-muted-rose/10 text-muted-rose border-muted-rose/20';
+      case 'podcast':
+        return 'bg-soft-emerald/10 text-soft-emerald border-soft-emerald/20';
+      default:
+        return 'bg-sage/10 text-sage border-sage/20';
+    }
+  };
 
   return (
     <div
@@ -195,12 +354,50 @@ const CalendarDay: React.FC<CalendarDayProps> = ({ date, isCurrentMonth, isToday
         {date.getDate()}
       </div>
 
-      {sampleContent && (
-        <div className="bg-sage/10 text-sage p-1 sm:p-2 rounded-lg text-xs mb-2 border border-sage/20 cursor-pointer hover:bg-sage/20 transition-colors duration-200">
-          <div className="font-medium">{sampleContent.title}</div>
-          <div className="text-sage/70 hidden sm:block">{sampleContent.time}</div>
-        </div>
-      )}
+      <div className="space-y-1">
+        {contentItems.map((item) => (
+          <div
+            key={item.id}
+            className={`p-1 sm:p-2 rounded-lg text-xs border cursor-pointer hover:scale-105 transition-all duration-200 group ${
+              getTypeColor(item.type)
+            }`}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onContentEdit) onContentEdit(item.id);
+            }}
+          >
+            <div className="font-medium truncate">{item.title}</div>
+            <div className="text-xs opacity-70 hidden sm:block">
+              {item.scheduledTime && format(new Date(`2000-01-01T${item.scheduledTime}`), 'h:mm a')}
+            </div>
+            <div className="flex items-center justify-between mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <span className="text-xs opacity-60">{item.type}</span>
+              <div className="flex items-center space-x-1">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onContentDuplicate) onContentDuplicate(item.id);
+                  }}
+                  className="text-blue-500 hover:text-blue-700 transition-colors"
+                  title="Duplicate"
+                >
+                  ⧉
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onContentDelete) onContentDelete(item.id);
+                  }}
+                  className="text-red-500 hover:text-red-700 transition-colors"
+                  title="Delete"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
