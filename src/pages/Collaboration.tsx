@@ -1,9 +1,13 @@
-import React from 'react';
-import { Users, MessageCircle, Clock, Plus } from 'lucide-react';
+import React, { useState } from 'react';
+import { Users, MessageCircle, Clock, Plus, BarChart3, AlertTriangle, Settings } from 'lucide-react';
 import TeamMembers from '../components/collaboration/TeamMembers';
 import RecentCollaboration from '../components/collaboration/RecentCollaboration';
 import SharedProjects from '../components/collaboration/SharedProjects';
 import ActivityFeed from '../components/collaboration/ActivityFeed';
+import CollaborationAnalytics from '../components/collaboration/CollaborationAnalytics';
+import ConflictResolution from '../components/collaboration/ConflictResolution';
+import ErrorBoundary from '../components/ErrorBoundary';
+import { LoadingOverlay } from '../components/Loading';
 
 const Collaboration = () => {
   return (
