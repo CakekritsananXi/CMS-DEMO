@@ -37,11 +37,12 @@ const Security: React.FC = () => {
     setIsLoading(true);
     try {
       await securityService.initialize();
-      refreshData();
     } catch (error) {
-      console.error('Failed to initialize security service:', error);
-      refreshData();
+      // Silently handle initialization errors since service falls back to mock data
+      console.warn('Security service using demo mode:', error?.message || 'Service unavailable');
     } finally {
+      // Always refresh data, even in demo mode
+      refreshData();
       setIsLoading(false);
     }
   };
