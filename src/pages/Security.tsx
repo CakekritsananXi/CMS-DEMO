@@ -447,6 +447,7 @@ const Security: React.FC = () => {
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: Shield },
     { id: 'scans', label: 'Scans', icon: Zap },
+    { id: 'automated', label: 'Automated', icon: Clock },
     { id: 'reports', label: 'Reports', icon: FileText },
     { id: 'settings', label: 'Settings', icon: Settings }
   ] as const;
