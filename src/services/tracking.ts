@@ -467,6 +467,20 @@ class TrackingService {
       console.warn('Failed to sync pending events:', error);
     }
   }
+
+  getConfigurationStatus() {
+    return {
+      isInitialized: this.isInitialized,
+      hasSupabaseUrl: !!this.supabaseUrl,
+      hasSupabaseKey: !!this.supabaseKey,
+      isFullyConfigured: this.isInitialized && !!this.supabaseUrl && !!this.supabaseKey,
+      pendingEventsCount: JSON.parse(localStorage.getItem('pending_analytics') || '[]').length
+    };
+  }
+
+  clearPendingEvents() {
+    localStorage.removeItem('pending_analytics');
+  }
 }
 
 export const trackingService = new TrackingService();
