@@ -453,13 +453,18 @@ class TrackingService {
       const events = JSON.parse(localStorage.getItem('pending_analytics') || '[]');
       if (events.length === 0) return;
 
+      if (!this.isInitialized || !this.supabaseUrl || !this.supabaseKey) {
+        console.log('Supabase not configured, keeping events in local storage');
+        return;
+      }
+
       for (const event of events) {
         await this.sendToSupabase('analytics_events', event);
       }
 
       localStorage.removeItem('pending_analytics');
     } catch (error) {
-      console.error('Failed to sync pending events:', error);
+      console.warn('Failed to sync pending events:', error);
     }
   }
 }
