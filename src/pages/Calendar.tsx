@@ -24,6 +24,44 @@ const Calendar = () => {
   });
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [isCreating, setIsCreating] = useState(false);
+  const [contentItems, setContentItems] = useState([
+    {
+      id: '1',
+      title: 'Blog Post Draft',
+      type: 'blog' as const,
+      status: 'draft' as const,
+      scheduledDate: format(new Date(), 'yyyy-MM-dd'),
+      scheduledTime: '14:00',
+      pillar: 'Thought Leadership',
+      description: 'Introduction to our new product features',
+      priority: 'medium',
+      assignee: 'john-doe'
+    },
+    {
+      id: '2',
+      title: 'Social Media Series',
+      type: 'social' as const,
+      status: 'scheduled' as const,
+      scheduledDate: format(addDays(new Date(), 2), 'yyyy-MM-dd'),
+      scheduledTime: '10:00',
+      pillar: 'Community Building',
+      description: 'Weekly social media content series',
+      priority: 'high',
+      assignee: 'jane-smith'
+    },
+    {
+      id: '3',
+      title: 'Newsletter Template',
+      type: 'email' as const,
+      status: 'review' as const,
+      scheduledDate: format(addDays(new Date(), 5), 'yyyy-MM-dd'),
+      scheduledTime: '09:00',
+      pillar: 'Product Education',
+      description: 'Monthly newsletter template',
+      priority: 'medium',
+      assignee: 'mike-johnson'
+    }
+  ]);
 
   const viewButtons = [
     { key: 'month', label: 'Month', icon: Grid3X3 },
@@ -139,14 +177,15 @@ const Calendar = () => {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      console.log('Creating content:', {
+      const newContent = {
         ...newContentData,
-        scheduledDateTime: `${newContentData.scheduledDate} ${newContentData.scheduledTime}`,
-        id: Date.now(),
+        id: Date.now().toString(),
         createdAt: new Date().toISOString()
-      });
+      };
 
-      // Here you would typically save to your state management or API
+      setContentItems(prev => [...prev, newContent]);
+      console.log('Creating content:', newContent);
+
       alert('Content scheduled successfully!');
       handleCloseModal();
     } catch (error) {
@@ -295,36 +334,61 @@ const Calendar = () => {
 
       {/* Calendar Grid */}
       <div className="bg-white rounded-2xl shadow-soft border border-neutral-100 overflow-hidden">
-        <CalendarGrid 
-          view={view} 
-          currentDate={currentDate} 
+        <CalendarGrid
+          view={view}
+          currentDate={currentDate}
           onDateClick={handleOpenNewContentModal}
+          contentItems={contentItems}
+          onContentMove={(contentId, newDate) => {
+            setContentItems(prev => prev.map(item =>
+              item.id === contentId
+                ? { ...item, scheduledDate: format(newDate, 'yyyy-MM-dd') }
+                : item
+            ));
+          }}
+          onContentEdit={(contentId) => {
+            const content = contentItems.find(item => item.id === contentId);
+            if (content) {
+              setNewContentData(content);
+              setShowNewContentModal(true);
+            }
+          }}
+          onContentDelete={(contentId) => {
+            if (confirm('Are you sure you want to delete this content?')) {
+              setContentItems(prev => prev.filter(item => item.id !== contentId));
+            }
+          }}
         />
       </div>
 
       {/* Content Quick Add */}
-      <div className="mt-6 sm:mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        <ContentCard
-          title="Blog Post Draft"
-          type="blog"
-          status="draft"
-          dueDate="Tomorrow"
-          pillar="Thought Leadership"
-        />
-        <ContentCard
-          title="Social Media Series"
-          type="social"
-          status="scheduled"
-          dueDate="This week"
-          pillar="Community Building"
-        />
-        <ContentCard
-          title="Newsletter Template"
-          type="email"
-          status="review"
-          dueDate="Friday"
-          pillar="Product Education"
-        />
+      <div className="mt-6 sm:mt-8">
+        <h3 className="text-lg font-semibold text-neutral-900 mb-4">Unscheduled Content</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          {contentItems
+            .filter(item => !item.scheduledDate || new Date(item.scheduledDate) < new Date())
+            .map(item => (
+              <ContentCard
+                key={item.id}
+                id={item.id}
+                title={item.title}
+                type={item.type}
+                status={item.status}
+                dueDate={item.scheduledDate ? format(new Date(item.scheduledDate), 'MMM d') : 'Not scheduled'}
+                pillar={item.pillar}
+                onEdit={() => {
+                  setNewContentData(item);
+                  setShowNewContentModal(true);
+                }}
+                onDelete={() => {
+                  if (confirm('Are you sure you want to delete this content?')) {
+                    setContentItems(prev => prev.filter(i => i.id !== item.id));
+                  }
+                }}
+              />
+            ))
+          }
+        </div>
       </div>
       </div>
 
