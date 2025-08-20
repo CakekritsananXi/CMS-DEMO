@@ -10,7 +10,8 @@ import {
   Users,
   Home,
   PenTool,
-  LogIn
+  LogIn,
+  Shield
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import UserMenu from './auth/UserMenu';
