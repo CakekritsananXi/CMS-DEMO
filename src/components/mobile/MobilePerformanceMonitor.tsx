@@ -113,14 +113,23 @@ const MobilePerformanceMonitor: React.FC<MobilePerformanceMonitorProps> = ({
             </div>
           </div>
           
-          <button
-            onClick={runPerformanceTest}
-            disabled={isLoading}
-            className="bg-blue-600 text-white px-4 py-2 rounded-xl font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center space-x-2"
-          >
-            <Monitor className="w-4 h-4" />
-            <span>{isLoading ? 'Testing...' : 'Run Test'}</span>
-          </button>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setShowTrackingConfig(!showTrackingConfig)}
+              className="border border-neutral-200 text-neutral-700 px-3 py-2 rounded-xl font-medium hover:bg-neutral-50 transition-colors duration-200 flex items-center space-x-2"
+              title="Configure Analytics"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+            <button
+              onClick={runPerformanceTest}
+              disabled={isLoading}
+              className="bg-blue-600 text-white px-4 py-2 rounded-xl font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center space-x-2"
+            >
+              <Monitor className="w-4 h-4" />
+              <span>{isLoading ? 'Testing...' : 'Run Test'}</span>
+            </button>
+          </div>
         </div>
         
         {lastUpdated && (
