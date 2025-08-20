@@ -19,6 +19,7 @@ const MobilePerformanceMonitor: React.FC<MobilePerformanceMonitorProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showTrackingConfig, setShowTrackingConfig] = useState(false);
   const [recommendations, setRecommendations] = useState<Array<{
     category: string;
     issue: string;
