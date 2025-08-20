@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Monitor, Smartphone, Wifi, Battery, Zap, AlertTriangle, CheckCircle, TrendingUp, TrendingDown, Settings } from 'lucide-react';
+import { Monitor, Smartphone, Wifi, Battery, Zap, AlertTriangle, CheckCircle, TrendingUp, TrendingDown, Settings, Key } from 'lucide-react';
 import { lighthouseService, MobileOptimizationMetrics } from '../../services/lighthouse';
 import { trackingService } from '../../services/tracking';
 import TrackingConfiguration from '../analytics/TrackingConfiguration';
+import LighthouseConfiguration from '../performance/LighthouseConfiguration';
 
 interface MobilePerformanceMonitorProps {
   url?: string;
@@ -20,6 +21,7 @@ const MobilePerformanceMonitor: React.FC<MobilePerformanceMonitorProps> = ({
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showTrackingConfig, setShowTrackingConfig] = useState(false);
+  const [showLighthouseConfig, setShowLighthouseConfig] = useState(false);
   const [recommendations, setRecommendations] = useState<Array<{
     category: string;
     issue: string;
@@ -63,11 +65,17 @@ const MobilePerformanceMonitor: React.FC<MobilePerformanceMonitorProps> = ({
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to run performance test';
       setError(errorMessage);
-      
+
+      // Show Lighthouse config if it's a rate limit error
+      if (errorMessage.includes('Rate limit exceeded') || errorMessage.includes('429')) {
+        setShowLighthouseConfig(true);
+      }
+
       // Track performance test error
       await trackingService.trackEvent('performance_test_error', 'error', {
         url,
-        error: errorMessage
+        error: errorMessage,
+        is_rate_limit: errorMessage.includes('Rate limit') || errorMessage.includes('429')
       });
     } finally {
       setIsLoading(false);
@@ -115,6 +123,13 @@ const MobilePerformanceMonitor: React.FC<MobilePerformanceMonitorProps> = ({
           
           <div className="flex space-x-2">
             <button
+              onClick={() => setShowLighthouseConfig(!showLighthouseConfig)}
+              className="border border-neutral-200 text-neutral-700 px-3 py-2 rounded-xl font-medium hover:bg-neutral-50 transition-colors duration-200 flex items-center space-x-2"
+              title="Configure Lighthouse API"
+            >
+              <Key className="w-4 h-4" />
+            </button>
+            <button
               onClick={() => setShowTrackingConfig(!showTrackingConfig)}
               className="border border-neutral-200 text-neutral-700 px-3 py-2 rounded-xl font-medium hover:bg-neutral-50 transition-colors duration-200 flex items-center space-x-2"
               title="Configure Analytics"
@@ -140,6 +155,12 @@ const MobilePerformanceMonitor: React.FC<MobilePerformanceMonitorProps> = ({
       </div>
 
       <div className="p-6">
+        {showLighthouseConfig && (
+          <div className="mb-6">
+            <LighthouseConfiguration />
+          </div>
+        )}
+
         {showTrackingConfig && (
           <div className="mb-6">
             <TrackingConfiguration />
@@ -156,12 +177,52 @@ const MobilePerformanceMonitor: React.FC<MobilePerformanceMonitorProps> = ({
         )}
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+          <div className={`border rounded-xl p-4 mb-6 ${
+            error.includes('Rate limit') || error.includes('429')
+              ? 'bg-yellow-50 border-yellow-200'
+              : 'bg-red-50 border-red-200'
+          }`}>
             <div className="flex items-center space-x-2">
-              <AlertTriangle className="w-5 h-5 text-red-600" />
-              <span className="text-red-800 font-medium">Performance Test Failed</span>
+              <AlertTriangle className={`w-5 h-5 ${
+                error.includes('Rate limit') || error.includes('429')
+                  ? 'text-yellow-600'
+                  : 'text-red-600'
+              }`} />
+              <span className={`font-medium ${
+                error.includes('Rate limit') || error.includes('429')
+                  ? 'text-yellow-800'
+                  : 'text-red-800'
+              }`}>
+                {error.includes('Rate limit') || error.includes('429')
+                  ? 'Rate Limit Reached'
+                  : 'Performance Test Failed'}
+              </span>
             </div>
-            <p className="text-red-700 text-sm mt-1">{error}</p>
+            <p className={`text-sm mt-1 ${
+              error.includes('Rate limit') || error.includes('429')
+                ? 'text-yellow-700'
+                : 'text-red-700'
+            }`}>
+              {error}
+            </p>
+
+            {(error.includes('Rate limit') || error.includes('429')) && (
+              <div className="mt-3 flex flex-col sm:flex-row gap-2">
+                <button
+                  onClick={() => setShowLighthouseConfig(true)}
+                  className="flex items-center space-x-2 px-3 py-2 bg-yellow-100 text-yellow-800 rounded-lg text-sm hover:bg-yellow-200 transition-colors"
+                >
+                  <Key className="w-4 h-4" />
+                  <span>Configure API Key</span>
+                </button>
+                <button
+                  onClick={() => setError(null)}
+                  className="px-3 py-2 bg-white border border-yellow-300 text-yellow-800 rounded-lg text-sm hover:bg-yellow-50 transition-colors"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
           </div>
         )}
 
