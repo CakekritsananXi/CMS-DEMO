@@ -166,13 +166,60 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* Mobile Optimization Showcase */}
+      {deviceCapabilities.isMobile && (
+        <div className="mb-8">
+          <div className="bg-gradient-to-r from-sage/10 to-warm-blue/10 rounded-2xl p-6 border border-sage/20">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-sage rounded-xl flex items-center justify-center">
+                  <Smartphone className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-neutral-900">Mobile-Optimized Experience</h3>
+                  <p className="text-sm text-neutral-600">Enhanced for your {deviceCapabilities.device_type} device</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setShowMobileOptimizations(!showMobileOptimizations);
+                  analytics.trackClick('mobile_optimizations_toggle', {
+                    expanded: !showMobileOptimizations
+                  });
+                }}
+                className="mobile-button-secondary text-sm"
+              >
+                {showMobileOptimizations ? 'Hide Details' : 'View Details'}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-sage">{deviceCapabilities.viewport.width}×{deviceCapabilities.viewport.height}</div>
+                <div className="text-xs text-neutral-600">Viewport Size</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-warm-blue">{deviceCapabilities.pixelRatio}x</div>
+                <div className="text-xs text-neutral-600">Pixel Ratio</div>
+              </div>
+            </div>
+
+            {showMobileOptimizations && (
+              <div className="mt-6">
+                <MobileOptimizationSummary />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
         <div className="lg:col-span-2 space-y-8">
           <QuickActions />
           <ContentPillars />
         </div>
-        
+
         <div className="space-y-6 lg:space-y-8">
           <UpcomingDeadlines />
           <RecentActivity />
