@@ -73,7 +73,7 @@ class SecurityService {
         return true;
       }
     } catch (error) {
-      console.warn('ZAP not available, using mock data for demo');
+      console.warn('ZAP not available, using mock data for demo:', error.message);
       this.isConnected = false;
       this.initializeMockData();
     }
@@ -82,24 +82,47 @@ class SecurityService {
 
   // Make HTTP request to ZAP API
   private async makeZAPRequest(endpoint: string, params: Record<string, any> = {}): Promise<any> {
-    const url = new URL(`${this.config.baseUrl}${endpoint}`);
-    
-    // Add API key if configured
-    if (this.config.apiKey) {
-      params.apikey = this.config.apiKey;
+    try {
+      const url = new URL(`${this.config.baseUrl}${endpoint}`);
+
+      // Add API key if configured
+      if (this.config.apiKey) {
+        params.apikey = this.config.apiKey;
+      }
+
+      // Add parameters to URL
+      Object.entries(params).forEach(([key, value]) => {
+        url.searchParams.append(key, String(value));
+      });
+
+      // Create abort controller for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      const response = await fetch(url.toString(), {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`ZAP API error: ${response.status} ${response.statusText}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      // Handle network errors, timeouts, and other fetch failures
+      if (error.name === 'AbortError') {
+        throw new Error('ZAP API request timeout');
+      } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        throw new Error('Unable to connect to ZAP - service not available');
+      }
+      throw error;
     }
-
-    // Add parameters to URL
-    Object.entries(params).forEach(([key, value]) => {
-      url.searchParams.append(key, String(value));
-    });
-
-    const response = await fetch(url.toString());
-    if (!response.ok) {
-      throw new Error(`ZAP API error: ${response.status} ${response.statusText}`);
-    }
-
-    return response.json();
   }
 
   // Start a new security scan
