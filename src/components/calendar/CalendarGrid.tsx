@@ -2,14 +2,42 @@ import React, { useState } from 'react';
 import { useDrop } from 'react-dnd';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
 
+interface ContentItem {
+  id: string;
+  title: string;
+  type: 'blog' | 'social' | 'email' | 'video' | 'podcast';
+  status: 'draft' | 'scheduled' | 'review' | 'in-progress' | 'approved' | 'published';
+  scheduledDate: string;
+  scheduledTime: string;
+  pillar: string;
+  description?: string;
+  priority?: string;
+  assignee?: string;
+}
+
 interface CalendarGridProps {
   view: 'month' | 'week' | 'day';
   currentDate: Date;
   onDateClick?: (date: Date) => void;
+  contentItems?: ContentItem[];
+  onContentMove?: (contentId: string, newDate: Date) => void;
+  onContentEdit?: (contentId: string) => void;
+  onContentDelete?: (contentId: string) => void;
 }
 
-const CalendarGrid: React.FC<CalendarGridProps> = ({ view, currentDate, onDateClick }) => {
-  const [draggedContent, setDraggedContent] = useState<any>(null);
+const CalendarGrid: React.FC<CalendarGridProps> = ({
+  view,
+  currentDate,
+  onDateClick,
+  contentItems = [],
+  onContentMove,
+  onContentEdit,
+  onContentDelete
+}) => {
+  const getContentForDate = (date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    return contentItems.filter(item => item.scheduledDate === dateStr);
+  };
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -63,9 +91,14 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({ view, currentDate, onDateCl
                 isCurrentMonth={isCurrentMonth}
                 isToday={isToday}
                 onDateClick={onDateClick}
+                contentItems={getContentForDate(day)}
                 onContentDrop={(content) => {
-                  console.log('Content dropped on', format(day, 'yyyy-MM-dd'), content);
+                  if (onContentMove) {
+                    onContentMove(content.id, day);
+                  }
                 }}
+                onContentEdit={onContentEdit}
+                onContentDelete={onContentDelete}
               />
             );
           })}
@@ -151,13 +184,26 @@ interface CalendarDayProps {
   isCurrentMonth: boolean;
   isToday: boolean;
   onDateClick?: (date: Date) => void;
+  contentItems?: ContentItem[];
   onContentDrop?: (content: any) => void;
+  onContentEdit?: (contentId: string) => void;
+  onContentDelete?: (contentId: string) => void;
 }
 
-const CalendarDay: React.FC<CalendarDayProps> = ({ date, isCurrentMonth, isToday, onDateClick, onContentDrop }) => {
+const CalendarDay: React.FC<CalendarDayProps> = ({
+  date,
+  isCurrentMonth,
+  isToday,
+  onDateClick,
+  contentItems = [],
+  onContentDrop,
+  onContentEdit,
+  onContentDelete
+}) => {
   const [{ isOver }, drop] = useDrop({
-    accept: 'content',
-    drop: (item) => {
+    accept: ['content', 'content-card'],
+    drop: (item: any) => {
+      console.log('Dropping item:', item, 'on date:', format(date, 'yyyy-MM-dd'));
       if (onContentDrop) {
         onContentDrop(item);
       }
@@ -167,11 +213,22 @@ const CalendarDay: React.FC<CalendarDayProps> = ({ date, isCurrentMonth, isToday
     }),
   });
 
-  const sampleContent = date.getDate() % 7 === 0 && isCurrentMonth ? {
-    title: 'Blog Post',
-    type: 'blog',
-    time: '2:00 PM',
-  } : null;
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'blog':
+        return 'bg-warm-blue/10 text-warm-blue border-warm-blue/20';
+      case 'social':
+        return 'bg-dusty-purple/10 text-dusty-purple border-dusty-purple/20';
+      case 'email':
+        return 'bg-warm-amber/10 text-warm-amber border-warm-amber/20';
+      case 'video':
+        return 'bg-muted-rose/10 text-muted-rose border-muted-rose/20';
+      case 'podcast':
+        return 'bg-soft-emerald/10 text-soft-emerald border-soft-emerald/20';
+      default:
+        return 'bg-sage/10 text-sage border-sage/20';
+    }
+  };
 
   return (
     <div
@@ -195,12 +252,38 @@ const CalendarDay: React.FC<CalendarDayProps> = ({ date, isCurrentMonth, isToday
         {date.getDate()}
       </div>
 
-      {sampleContent && (
-        <div className="bg-sage/10 text-sage p-1 sm:p-2 rounded-lg text-xs mb-2 border border-sage/20 cursor-pointer hover:bg-sage/20 transition-colors duration-200">
-          <div className="font-medium">{sampleContent.title}</div>
-          <div className="text-sage/70 hidden sm:block">{sampleContent.time}</div>
-        </div>
-      )}
+      <div className="space-y-1">
+        {contentItems.map((item) => (
+          <div
+            key={item.id}
+            className={`p-1 sm:p-2 rounded-lg text-xs border cursor-pointer hover:scale-105 transition-all duration-200 group ${
+              getTypeColor(item.type)
+            }`}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onContentEdit) onContentEdit(item.id);
+            }}
+          >
+            <div className="font-medium truncate">{item.title}</div>
+            <div className="text-xs opacity-70 hidden sm:block">
+              {item.scheduledTime && format(new Date(`2000-01-01T${item.scheduledTime}`), 'h:mm a')}
+            </div>
+            <div className="flex items-center justify-between mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <span className="text-xs opacity-60">{item.type}</span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onContentDelete) onContentDelete(item.id);
+                }}
+                className="text-red-500 hover:text-red-700 transition-colors"
+                title="Delete"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
