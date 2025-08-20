@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { DatabaseProvider } from './contexts/DatabaseContext';
+import { AuthProvider } from './contexts/AuthContext';
 import Navigation from './components/Navigation';
 import Dashboard from './pages/Dashboard';
 import Calendar from './pages/Calendar';
