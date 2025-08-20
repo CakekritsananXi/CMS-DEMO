@@ -98,7 +98,7 @@ const Navigation = () => {
               <div className="w-8 h-8 bg-sage rounded-xl flex items-center justify-center">
                 <PenTool className="w-4 h-4 text-white" />
               </div>
-              <span className="text-lg sm:text-xl font-semibold text-neutral-800 hidden xs:inline">
+              <span className="text-lg sm:text-xl font-semibold text-neutral-800 hidden sm:inline">
                 ContentFlow
               </span>
             </div>
