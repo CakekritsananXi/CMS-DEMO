@@ -73,9 +73,10 @@ class SecurityService {
         return true;
       }
     } catch (error) {
-      console.warn('ZAP not available, using mock data for demo:', error.message);
+      console.warn('ZAP not available, using mock data for demo:', error?.message || 'Connection failed');
       this.isConnected = false;
       this.initializeMockData();
+      return false;
     }
     return false;
   }
