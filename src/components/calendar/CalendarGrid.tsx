@@ -41,6 +41,23 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
     return contentItems.filter(item => item.scheduledDate === dateStr);
   };
 
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'blog':
+        return 'bg-warm-blue/10 text-warm-blue border-warm-blue/20';
+      case 'social':
+        return 'bg-dusty-purple/10 text-dusty-purple border-dusty-purple/20';
+      case 'email':
+        return 'bg-warm-amber/10 text-warm-amber border-warm-amber/20';
+      case 'video':
+        return 'bg-muted-rose/10 text-muted-rose border-muted-rose/20';
+      case 'podcast':
+        return 'bg-soft-emerald/10 text-soft-emerald border-soft-emerald/20';
+      default:
+        return 'bg-sage/10 text-sage border-sage/20';
+    }
+  };
+
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
