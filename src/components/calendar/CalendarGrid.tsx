@@ -275,16 +275,28 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
             </div>
             <div className="flex items-center justify-between mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <span className="text-xs opacity-60">{item.type}</span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (onContentDelete) onContentDelete(item.id);
-                }}
-                className="text-red-500 hover:text-red-700 transition-colors"
-                title="Delete"
-              >
-                ×
-              </button>
+              <div className="flex items-center space-x-1">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onContentDuplicate) onContentDuplicate(item.id);
+                  }}
+                  className="text-blue-500 hover:text-blue-700 transition-colors"
+                  title="Duplicate"
+                >
+                  ⧉
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onContentDelete) onContentDelete(item.id);
+                  }}
+                  className="text-red-500 hover:text-red-700 transition-colors"
+                  title="Delete"
+                >
+                  ×
+                </button>
+              </div>
             </div>
           </div>
         ))}
