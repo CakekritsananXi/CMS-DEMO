@@ -276,9 +276,11 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({ ch
     return users.includes(userId);
   };
 
-  const value: CollaborationContextType = {
+  const value: CollaborationContextType = useMemo(() => ({
     isConnected,
     isLoading,
+    error,
+    reconnectAttempts,
     activeUsers,
     currentUserPresence,
     comments,
@@ -286,6 +288,8 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({ ch
     typingUsers,
     connect,
     disconnect,
+    retry,
+    clearError,
     updatePresence,
     addComment,
     replyToComment,
@@ -295,7 +299,20 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({ ch
     getActiveUsersInLocation,
     getCommentsForContent,
     isUserTyping
-  };
+  }), [
+    isConnected,
+    isLoading,
+    error,
+    reconnectAttempts,
+    activeUsers,
+    currentUserPresence,
+    comments,
+    liveEdits,
+    typingUsers,
+    connect,
+    retry,
+    clearError
+  ]);
 
   return (
     <CollaborationContext.Provider value={value}>
