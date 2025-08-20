@@ -43,6 +43,7 @@ const AppContent: React.FC = () => {
             <Route path="/library" element={<Library />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/collaboration" element={<Collaboration />} />
+            <Route path="/security" element={<Security />} />
           </Routes>
         </main>
       </div>
