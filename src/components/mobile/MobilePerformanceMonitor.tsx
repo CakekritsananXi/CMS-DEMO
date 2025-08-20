@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Monitor, Smartphone, Wifi, Battery, Zap, AlertTriangle, CheckCircle, TrendingUp, TrendingDown } from 'lucide-react';
+import { Monitor, Smartphone, Wifi, Battery, Zap, AlertTriangle, CheckCircle, TrendingUp, TrendingDown, Settings } from 'lucide-react';
 import { lighthouseService, MobileOptimizationMetrics } from '../../services/lighthouse';
 import { trackingService } from '../../services/tracking';
+import TrackingConfiguration from '../analytics/TrackingConfiguration';
 
 interface MobilePerformanceMonitorProps {
   url?: string;
