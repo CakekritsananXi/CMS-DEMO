@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Zap, Code, Shield, Play, Settings, Calendar, CheckCircle, AlertTriangle, Bug } from 'lucide-react';
+import { Clock, Zap, Code, Shield, Play, Settings, Calendar, CheckCircle, AlertTriangle, Bug, X, Pause } from 'lucide-react';
 import { securityService } from '../../services/security';
 
 interface AutomatedScanConfig {
