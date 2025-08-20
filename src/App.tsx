@@ -13,6 +13,7 @@ import Analytics from './pages/Analytics';
 import Collaboration from './pages/Collaboration';
 import Security from './pages/Security';
 import ErrorBoundary from './components/ErrorBoundary';
+import AnalyticsStatusNotice from './components/analytics/AnalyticsStatusNotice';
 import { useAnalytics, useMobileAnalytics } from './hooks/useAnalytics';
 import { getDeviceCapabilities, optimizeForMobile } from './utils/mobile';
 
