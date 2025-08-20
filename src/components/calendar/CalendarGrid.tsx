@@ -119,6 +119,7 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
                 onContentEdit={onContentEdit}
                 onContentDelete={onContentDelete}
                 onContentDuplicate={onContentDuplicate}
+                getTypeColor={getTypeColor}
               />
             );
           })}
