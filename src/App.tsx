@@ -51,31 +51,24 @@ const AppContent: React.FC = () => {
 
 function App() {
   return (
-    <AuthProvider>
-      <DatabaseProvider>
-        <CollaborationProvider>
-          <DndProvider backend={HTML5Backend}>
-            <Router>
-              <div className="min-h-screen bg-cream">
-                <Navigation />
-                <LiveCursors />
-                <main className="transition-all duration-300 ease-in-out">
-                  <Routes>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/calendar" element={<Calendar />} />
-                    <Route path="/ideation" element={<Ideation />} />
-                    <Route path="/strategy" element={<Strategy />} />
-                    <Route path="/library" element={<Library />} />
-                    <Route path="/analytics" element={<Analytics />} />
-                    <Route path="/collaboration" element={<Collaboration />} />
-                  </Routes>
-                </main>
-              </div>
-            </Router>
-          </DndProvider>
-        </CollaborationProvider>
-      </DatabaseProvider>
-    </AuthProvider>
+    <ErrorBoundary
+      onError={(error, errorInfo) => {
+        // Log error to analytics service in production
+        console.error('App Error:', error, errorInfo);
+      }}
+    >
+      <AuthProvider>
+        <DatabaseProvider>
+          <CollaborationProvider>
+            <DndProvider backend={HTML5Backend}>
+              <Router>
+                <AppContent />
+              </Router>
+            </DndProvider>
+          </CollaborationProvider>
+        </DatabaseProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 
