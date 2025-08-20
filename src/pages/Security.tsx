@@ -6,6 +6,7 @@ import ErrorBoundary from '../components/ErrorBoundary';
 import { Loading, LoadingOverlay } from '../components/Loading';
 import AutomatedScanning from '../components/security/AutomatedScanning';
 import MobilePerformanceMonitor from '../components/mobile/MobilePerformanceMonitor';
+import TrackingConfiguration from '../components/analytics/TrackingConfiguration';
 import { getDeviceCapabilities } from '../utils/mobile';
 
 const Security: React.FC = () => {
@@ -579,6 +580,7 @@ const Security: React.FC = () => {
 
   const renderMobileOptimization = () => (
     <div className="space-y-6">
+      <TrackingConfiguration />
       <MobilePerformanceMonitor
         autoRun={false}
         showRecommendations={true}
