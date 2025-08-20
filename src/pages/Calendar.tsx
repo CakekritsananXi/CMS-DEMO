@@ -358,6 +358,19 @@ const Calendar = () => {
               setContentItems(prev => prev.filter(item => item.id !== contentId));
             }
           }}
+          onContentDuplicate={(contentId) => {
+            const content = contentItems.find(item => item.id === contentId);
+            if (content) {
+              const duplicatedContent = {
+                ...content,
+                id: Date.now().toString(),
+                title: `${content.title} (Copy)`,
+                status: 'draft' as const,
+                scheduledDate: format(addDays(new Date(content.scheduledDate), 1), 'yyyy-MM-dd')
+              };
+              setContentItems(prev => [...prev, duplicatedContent]);
+            }
+          }}
         />
       </div>
 
@@ -384,6 +397,16 @@ const Calendar = () => {
                   if (confirm('Are you sure you want to delete this content?')) {
                     setContentItems(prev => prev.filter(i => i.id !== item.id));
                   }
+                }}
+                onDuplicate={() => {
+                  const duplicatedContent = {
+                    ...item,
+                    id: Date.now().toString(),
+                    title: `${item.title} (Copy)`,
+                    status: 'draft' as const,
+                    scheduledDate: format(addDays(new Date(), 1), 'yyyy-MM-dd')
+                  };
+                  setContentItems(prev => [...prev, duplicatedContent]);
                 }}
               />
             ))

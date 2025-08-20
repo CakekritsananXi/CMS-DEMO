@@ -1,6 +1,6 @@
 import React from 'react';
 import { useDrag } from 'react-dnd';
-import { FileText, Instagram, Mail, Clock, Edit2, Trash2, Video, Mic } from 'lucide-react';
+import { FileText, Instagram, Mail, Clock, Edit2, Trash2, Video, Mic, Copy } from 'lucide-react';
 
 interface ContentCardProps {
   id: string;
@@ -11,9 +11,10 @@ interface ContentCardProps {
   pillar: string;
   onEdit?: () => void;
   onDelete?: () => void;
+  onDuplicate?: () => void;
 }
 
-const ContentCard: React.FC<ContentCardProps> = ({ id, title, type, status, dueDate, pillar, onEdit, onDelete }) => {
+const ContentCard: React.FC<ContentCardProps> = ({ id, title, type, status, dueDate, pillar, onEdit, onDelete, onDuplicate }) => {
   const [{ isDragging }, drag] = useDrag({
     type: 'content-card',
     item: { id, title, type, status },
@@ -96,6 +97,18 @@ const ContentCard: React.FC<ContentCardProps> = ({ id, title, type, status, dueD
               title="Edit"
             >
               <Edit2 className="w-3 h-3 text-neutral-500" />
+            </button>
+          )}
+          {onDuplicate && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDuplicate();
+              }}
+              className="p-1 hover:bg-blue-100 rounded transition-colors"
+              title="Duplicate"
+            >
+              <Copy className="w-3 h-3 text-blue-500" />
             </button>
           )}
           {onDelete && (
