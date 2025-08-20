@@ -319,7 +319,8 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
   onContentDrop,
   onContentEdit,
   onContentDelete,
-  onContentDuplicate
+  onContentDuplicate,
+  getTypeColor
 }) => {
   const [{ isOver }, drop] = useDrop({
     accept: ['content', 'content-card'],
