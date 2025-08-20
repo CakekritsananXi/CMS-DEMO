@@ -6,7 +6,7 @@ import { Loading, LoadingOverlay } from '../components/Loading';
 import AutomatedScanning from '../components/security/AutomatedScanning';
 
 const Security: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'scans' | 'reports' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'scans' | 'automated' | 'reports' | 'settings'>('dashboard');
   const [scans, setScans] = useState<ScanResult[]>([]);
   const [metrics, setMetrics] = useState<SecurityMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
