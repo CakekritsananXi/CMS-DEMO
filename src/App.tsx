@@ -17,6 +17,7 @@ import Strategy from './pages/Strategy';
 import Library from './pages/Library';
 import Analytics from './pages/Analytics';
 import Collaboration from './pages/Collaboration';
+import Security from './pages/Security';
 
 // Component to handle connection status
 const AppContent: React.FC = () => {
