@@ -1,20 +1,26 @@
 import React from 'react';
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { 
-  Calendar, 
-  Lightbulb, 
-  Target, 
-  FolderOpen, 
-  BarChart3, 
-  Users, 
+import {
+  Calendar,
+  Lightbulb,
+  Target,
+  FolderOpen,
+  BarChart3,
+  Users,
   Home,
-  PenTool
+  PenTool,
+  LogIn
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import UserMenu from './auth/UserMenu';
+import AuthModal from './auth/AuthModal';
 
 const Navigation = () => {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const { isAuthenticated } = useAuth();
 
   const navItems = [
     { path: '/', icon: Home, label: 'Dashboard' },
