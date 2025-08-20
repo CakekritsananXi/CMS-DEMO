@@ -184,9 +184,14 @@ class TrackingService {
     };
 
     try {
-      await this.sendToSupabase('analytics_events', event);
+      if (this.isInitialized && this.supabaseUrl && this.supabaseKey) {
+        await this.sendToSupabase('analytics_events', event);
+      } else {
+        // Store locally when Supabase is not configured
+        this.storeEventLocally(event);
+      }
     } catch (error) {
-      console.error('Failed to track event:', error);
+      console.warn('Failed to track event:', error);
       // Store in localStorage as fallback
       this.storeEventLocally(event);
     }
@@ -228,9 +233,14 @@ class TrackingService {
     };
 
     try {
-      await this.sendToSupabase('performance_metrics', metrics);
+      if (this.isInitialized && this.supabaseUrl && this.supabaseKey) {
+        await this.sendToSupabase('performance_metrics', metrics);
+      } else {
+        // Log performance metrics locally when Supabase is not configured
+        console.log('Performance metrics (local):', metrics);
+      }
     } catch (error) {
-      console.error('Failed to track performance:', error);
+      console.warn('Failed to track performance:', error);
     }
   }
 
@@ -325,9 +335,14 @@ class TrackingService {
     };
 
     try {
-      await this.sendToSupabase('user_sessions', session);
+      if (this.isInitialized && this.supabaseUrl && this.supabaseKey) {
+        await this.sendToSupabase('user_sessions', session);
+      } else {
+        // Log session locally when Supabase is not configured
+        console.log('Session started (local):', session);
+      }
     } catch (error) {
-      console.error('Failed to start session:', error);
+      console.warn('Failed to start session:', error);
     }
   }
 
@@ -335,14 +350,23 @@ class TrackingService {
     const duration = Date.now() - this.sessionStartTime;
     
     try {
-      await this.sendToSupabase('user_sessions', {
-        session_id: this.sessionId,
-        end_time: new Date().toISOString(),
-        duration: Math.round(duration / 1000),
-        page_views: this.pageViews
-      }, 'session_id');
+      if (this.isInitialized && this.supabaseUrl && this.supabaseKey) {
+        await this.sendToSupabase('user_sessions', {
+          session_id: this.sessionId,
+          end_time: new Date().toISOString(),
+          duration: Math.round(duration / 1000),
+          page_views: this.pageViews
+        }, 'session_id');
+      } else {
+        // Log session end locally when Supabase is not configured
+        console.log('Session ended (local):', {
+          session_id: this.sessionId,
+          duration: Math.round(duration / 1000),
+          page_views: this.pageViews
+        });
+      }
     } catch (error) {
-      console.error('Failed to end session:', error);
+      console.warn('Failed to end session:', error);
     }
   }
 
@@ -385,8 +409,12 @@ class TrackingService {
   }
 
   private async sendToSupabase(table: string, data: any, updateColumn?: string) {
-    if (!this.isInitialized || !this.supabaseUrl || !this.supabaseKey) {
-      throw new Error('Supabase not configured');
+    if (!this.isInitialized) {
+      throw new Error('Tracking service not initialized');
+    }
+
+    if (!this.supabaseUrl || !this.supabaseKey) {
+      throw new Error('Supabase configuration missing (URL or key not provided)');
     }
 
     const method = updateColumn ? 'PATCH' : 'POST';
