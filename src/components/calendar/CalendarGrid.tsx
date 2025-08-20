@@ -113,7 +113,7 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
   if (view === 'week') {
     return (
       <div className="p-3 sm:p-6 overflow-x-auto">
-        <div className="grid grid-cols-8 gap-1">
+        <div className="grid grid-cols-8 gap-1 min-w-[800px]">
           <div className="p-3"></div>
           {weekDays.map((day) => (
             <div key={day.toISOString()} className="p-3 text-center">
@@ -121,26 +121,50 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
                 {format(day, 'EEE')}
               </div>
               <div className={`text-lg font-semibold mt-1 ${
-                day.toDateString() === new Date().toDateString() 
-                  ? 'text-sage' 
+                day.toDateString() === new Date().toDateString()
+                  ? 'text-sage'
                   : 'text-neutral-700'
               }`}>
                 {format(day, 'd')}
               </div>
             </div>
           ))}
-          
+
           {Array.from({ length: 24 }, (_, hour) => (
             <React.Fragment key={hour}>
-              <div className="p-2 text-xs text-neutral-500 text-right border-r border-neutral-100">
+              <div className="p-2 text-xs text-neutral-500 text-right border-r border-neutral-100 sticky left-0 bg-white z-10">
                 {format(new Date().setHours(hour, 0, 0, 0), 'ha')}
               </div>
-              {weekDays.map((day) => (
-                <div
-                  key={`${day.toISOString()}-${hour}`}
-                  className="min-h-[60px] border border-neutral-100 hover:bg-neutral-50 transition-colors duration-200"
-                />
-              ))}
+              {weekDays.map((day) => {
+                const dayContent = getContentForDate(day).filter(item => {
+                  const itemHour = parseInt(item.scheduledTime.split(':')[0]);
+                  return itemHour === hour;
+                });
+
+                return (
+                  <div
+                    key={`${day.toISOString()}-${hour}`}
+                    className="min-h-[60px] border border-neutral-100 hover:bg-neutral-50 transition-colors duration-200 p-1 relative"
+                    onClick={() => onDateClick && onDateClick(day)}
+                  >
+                    {dayContent.map((item) => (
+                      <div
+                        key={item.id}
+                        className={`text-xs p-1 rounded border cursor-pointer hover:scale-105 transition-all duration-200 mb-1 ${
+                          getTypeColor(item.type)
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onContentEdit) onContentEdit(item.id);
+                        }}
+                      >
+                        <div className="font-medium truncate">{item.title}</div>
+                        <div className="text-xs opacity-70">{item.scheduledTime}</div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
             </React.Fragment>
           ))}
         </div>
@@ -149,24 +173,97 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
   }
 
   if (view === 'day') {
+    const dayContent = getContentForDate(currentDate);
+
     return (
       <div className="p-3 sm:p-6">
         <div className="text-center mb-6">
           <h3 className="text-xl sm:text-2xl font-bold text-neutral-900">
             {format(currentDate, 'EEEE, MMMM d, yyyy')}
           </h3>
+          <p className="text-neutral-600 mt-2">
+            {dayContent.length} {dayContent.length === 1 ? 'item' : 'items'} scheduled
+          </p>
         </div>
-        
-        <div className="grid grid-cols-2 gap-1">
+
+        <div className="max-w-2xl mx-auto">
           <div className="space-y-1">
-            {Array.from({ length: 24 }, (_, hour) => (
-              <div key={hour} className="flex items-center">
-                <div className="w-12 sm:w-16 text-xs text-neutral-500 text-right pr-2 sm:pr-4">
-                  {format(new Date().setHours(hour, 0, 0, 0), 'ha')}
+            {Array.from({ length: 24 }, (_, hour) => {
+              const hourContent = dayContent.filter(item => {
+                const itemHour = parseInt(item.scheduledTime.split(':')[0]);
+                return itemHour === hour;
+              });
+
+              return (
+                <div key={hour} className="flex items-start">
+                  <div className="w-16 sm:w-20 text-xs text-neutral-500 text-right pr-4 py-2 sticky left-0">
+                    {format(new Date().setHours(hour, 0, 0, 0), 'ha')}
+                  </div>
+                  <div
+                    className="flex-1 min-h-[60px] border border-neutral-100 hover:bg-neutral-50 transition-colors duration-200 rounded-lg p-2 cursor-pointer"
+                    onClick={() => {
+                      if (onDateClick) {
+                        const clickDate = new Date(currentDate);
+                        clickDate.setHours(hour, 0, 0, 0);
+                        onDateClick(clickDate);
+                      }
+                    }}
+                  >
+                    {hourContent.length === 0 ? (
+                      <div className="text-neutral-300 text-xs py-4 text-center">
+                        No events scheduled
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {hourContent.map((item) => (
+                          <div
+                            key={item.id}
+                            className={`p-3 rounded-lg border cursor-pointer hover:scale-105 transition-all duration-200 group ${
+                              getTypeColor(item.type)
+                            }`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (onContentEdit) onContentEdit(item.id);
+                            }}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="font-medium">{item.title}</div>
+                              <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (onContentDuplicate) onContentDuplicate(item.id);
+                                  }}
+                                  className="text-blue-500 hover:text-blue-700 transition-colors"
+                                  title="Duplicate"
+                                >
+                                  ⧉
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (onContentDelete) onContentDelete(item.id);
+                                  }}
+                                  className="text-red-500 hover:text-red-700 transition-colors"
+                                  title="Delete"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            </div>
+                            <div className="text-sm opacity-80 mb-2">{item.description || 'No description'}</div>
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="opacity-60">{item.type} • {item.pillar}</span>
+                              <span className="font-medium">{item.scheduledTime}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex-1 min-h-[40px] sm:min-h-[60px] border border-neutral-100 hover:bg-neutral-50 transition-colors duration-200 rounded-lg" />
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
