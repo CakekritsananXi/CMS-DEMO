@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Grid3X3, List, Calendar as CalendarIcon, Filter, X, MoreHorizontal } from 'lucide-react';
 import { addMonths, subMonths, addWeeks, subWeeks, addDays, subDays, format, startOfYear, endOfYear, eachMonthOfInterval } from 'date-fns';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import CalendarGrid from '../components/calendar/CalendarGrid';
 import ContentCard from '../components/calendar/ContentCard';
 
