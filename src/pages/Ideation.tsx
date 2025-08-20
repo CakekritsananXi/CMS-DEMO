@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useCollaboration } from '../contexts/CollaborationContext';
 import UserPresence from '../components/collaboration/UserPresence';
 import TypingIndicator from '../components/collaboration/TypingIndicator';
+import AISuggestions from '../components/ideation/AISuggestions';
 
 interface NewIdeaData {
   title: string;
