@@ -307,6 +307,7 @@ interface CalendarDayProps {
   onContentEdit?: (contentId: string) => void;
   onContentDelete?: (contentId: string) => void;
   onContentDuplicate?: (contentId: string) => void;
+  getTypeColor: (type: string) => string;
 }
 
 const CalendarDay: React.FC<CalendarDayProps> = ({
