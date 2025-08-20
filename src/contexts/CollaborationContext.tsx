@@ -71,23 +71,25 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({ ch
     }
   }, [user]);
 
+  // Memoized event handlers for better performance
+  const handleUserJoin = useCallback((data: any) => {
+    refreshActiveUsers();
+  }, []);
+
+  const handleUserLeave = useCallback((data: any) => {
+    refreshActiveUsers();
+  }, []);
+
+  const handlePresenceUpdate = useCallback((data: any) => {
+    refreshActiveUsers();
+    if (data.userId === user?.id) {
+      const presence = collaborationService.getUserPresence(user.id);
+      setCurrentUserPresence(presence);
+    }
+  }, [user?.id]);
+
   // Setup event listeners
   useEffect(() => {
-    const handleUserJoin = (data: any) => {
-      refreshActiveUsers();
-    };
-
-    const handleUserLeave = (data: any) => {
-      refreshActiveUsers();
-    };
-
-    const handlePresenceUpdate = (data: any) => {
-      refreshActiveUsers();
-      if (data.userId === user?.id) {
-        const presence = collaborationService.getUserPresence(user.id);
-        setCurrentUserPresence(presence);
-      }
-    };
 
     const handleContentEdit = (edit: LiveEdit) => {
       setLiveEdits(prev => {
