@@ -1,6 +1,5 @@
 import React from 'react';
-import { useTyping } from '../../contexts/CollaborationContext';
-import { useActiveUsers } from '../../contexts/CollaborationContext';
+import { useTyping, useActiveUsers } from '../../contexts/CollaborationContext';
 
 interface TypingIndicatorProps {
   contentId: string;
