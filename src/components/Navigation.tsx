@@ -141,7 +141,7 @@ const Navigation = () => {
             {/* Tablet Navigation */}
             <div className="hidden md:flex lg:hidden items-center space-x-2">
               <div className="flex space-x-1">
-                {navItems.slice(0, 5).map(({ path, icon: Icon, label }) => (
+                {navItems.slice(0, 6).map(({ path, icon: Icon, label }) => (
                   <NavLink
                     key={path}
                     to={path}
