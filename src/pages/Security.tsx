@@ -353,9 +353,233 @@ const Security: React.FC = () => {
     </div>
   );
 
+  const renderScans = () => (
+    <div className="mobile-card p-0 overflow-hidden">
+      <div className="p-4 sm:p-6 border-b border-neutral-100">
+        <div className="flex items-center justify-between">
+          <h3 className="text-responsive-lg font-medium text-neutral-900">All Security Scans</h3>
+          <button
+            onClick={refreshData}
+            className="text-sm text-sage hover:text-sage/80 transition-colors duration-200 touch-target"
+          >
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto webkit-scrolling-touch">
+        <div className="min-w-full">
+          {/* Mobile-first table layout */}
+          <div className="block sm:hidden">
+            {scans.map((scan) => (
+              <div key={scan.id} className="border-b border-neutral-100 p-4">
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-neutral-900 truncate">{scan.target}</div>
+                      <div className="text-xs text-neutral-600 mt-1">{scan.id}</div>
+                    </div>
+                    <span className={`px-2 py-1 rounded-lg text-xs font-medium ml-2 ${getStatusColor(scan.status)}`}>
+                      {scan.status}
+                    </span>
+                  </div>
+
+                  <div className="text-xs text-neutral-600">
+                    Started: {new Date(scan.startTime).toLocaleString()}
+                  </div>
+
+                  {scan.status === 'completed' && (
+                    <div className="flex items-center space-x-3 text-xs">
+                      <span className="text-red-600">{scan.summary.critical}C</span>
+                      <span className="text-orange-600">{scan.summary.high}H</span>
+                      <span className="text-yellow-600">{scan.summary.medium}M</span>
+                      <span className="text-green-600">{scan.summary.low}L</span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => setSelectedScan(scan)}
+                        className="text-xs text-sage hover:text-sage/80 transition-colors duration-200 touch-target"
+                      >
+                        View
+                      </button>
+                      {scan.status === 'running' && (
+                        <button
+                          onClick={() => handleStopScan(scan.id)}
+                          className="text-xs text-red-600 hover:text-red-500 transition-colors duration-200 touch-target"
+                        >
+                          Stop
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDeleteScan(scan.id)}
+                        className="text-xs text-red-600 hover:text-red-500 transition-colors duration-200 touch-target"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                    {scan.status === 'running' && (
+                      <div className="text-xs text-neutral-600">{Math.round(scan.progress)}%</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop table layout */}
+          <table className="hidden sm:table w-full">
+            <thead className="bg-neutral-50/50">
+              <tr>
+                <th className="text-left p-4 font-medium text-neutral-700">Target</th>
+                <th className="text-left p-4 font-medium text-neutral-700">Status</th>
+                <th className="text-left p-4 font-medium text-neutral-700">Started</th>
+                <th className="text-left p-4 font-medium text-neutral-700">Vulnerabilities</th>
+                <th className="text-left p-4 font-medium text-neutral-700">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-neutral-100">
+              {scans.map((scan) => (
+                <tr key={scan.id} className="hover:bg-neutral-50 transition-colors duration-200">
+                  <td className="p-4">
+                    <div className="font-medium text-neutral-900">{scan.target}</div>
+                    <div className="text-sm text-neutral-600">{scan.id}</div>
+                  </td>
+                  <td className="p-4">
+                    <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getStatusColor(scan.status)}`}>
+                      {scan.status}
+                    </span>
+                    {scan.status === 'running' && (
+                      <div className="mt-1 text-xs text-neutral-600">{Math.round(scan.progress)}% complete</div>
+                    )}
+                  </td>
+                  <td className="p-4 text-sm text-neutral-600">
+                    {new Date(scan.startTime).toLocaleString()}
+                  </td>
+                  <td className="p-4">
+                    {scan.status === 'completed' ? (
+                      <div className="flex items-center space-x-2 text-sm">
+                        <span className="text-red-600">{scan.summary.critical}C</span>
+                        <span className="text-orange-600">{scan.summary.high}H</span>
+                        <span className="text-yellow-600">{scan.summary.medium}M</span>
+                        <span className="text-green-600">{scan.summary.low}L</span>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-neutral-500">-</span>
+                    )}
+                  </td>
+                  <td className="p-4">
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => setSelectedScan(scan)}
+                        className="text-sm text-sage hover:text-sage/80 transition-colors duration-200 touch-target"
+                      >
+                        View
+                      </button>
+                      {scan.status === 'running' && (
+                        <button
+                          onClick={() => handleStopScan(scan.id)}
+                          className="text-sm text-red-600 hover:text-red-500 transition-colors duration-200 touch-target"
+                        >
+                          Stop
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDeleteScan(scan.id)}
+                        className="text-sm text-red-600 hover:text-red-500 transition-colors duration-200 touch-target"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderReports = () => (
+    <div className="space-y-6">
+      <div className="mobile-card text-center">
+        <div className="w-16 h-16 bg-neutral-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+          <FileText className="w-8 h-8 text-neutral-400" />
+        </div>
+        <h3 className="text-responsive-lg font-medium text-neutral-900 mb-2">Security Reports</h3>
+        <p className="text-responsive-sm text-neutral-600 mb-6">Generate comprehensive security reports from your scans.</p>
+
+        <div className="mobile-grid max-w-2xl mx-auto">
+          <button className="mobile-card hover:bg-neutral-50 transition-colors duration-200 text-center">
+            <div className="text-sm font-medium text-neutral-900 mb-1">Executive Summary</div>
+            <div className="text-xs text-neutral-600">High-level security overview</div>
+          </button>
+          <button className="mobile-card hover:bg-neutral-50 transition-colors duration-200 text-center">
+            <div className="text-sm font-medium text-neutral-900 mb-1">Technical Report</div>
+            <div className="text-xs text-neutral-600">Detailed vulnerability analysis</div>
+          </button>
+          <button className="mobile-card hover:bg-neutral-50 transition-colors duration-200 text-center">
+            <div className="text-sm font-medium text-neutral-900 mb-1">Compliance Report</div>
+            <div className="text-xs text-neutral-600">OWASP Top 10 mapping</div>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderSettings = () => (
+    <div className="space-y-6">
+      <div className="mobile-card">
+        <div className="border-b border-neutral-100 pb-4 mb-6">
+          <h3 className="text-responsive-lg font-medium text-neutral-900">OWASP ZAP Configuration</h3>
+        </div>
+        <div className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 mb-2">ZAP API URL</label>
+            <input
+              type="url"
+              defaultValue="http://localhost:8080"
+              className="mobile-input"
+            />
+            <p className="text-xs sm:text-sm text-neutral-600 mt-1">URL of your OWASP ZAP instance</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 mb-2">API Key</label>
+            <input
+              type="password"
+              placeholder="Enter ZAP API key (optional)"
+              className="mobile-input"
+            />
+            <p className="text-xs sm:text-sm text-neutral-600 mt-1">API key for authenticated access</p>
+          </div>
+
+          <div className="flex items-center space-x-3 p-3 bg-neutral-50 rounded-xl">
+            <div className={`w-3 h-3 rounded-full ${securityService.isZAPConnected() ? 'bg-green-500' : 'bg-red-500'}`} />
+            <span className="text-xs sm:text-sm text-neutral-700">
+              {securityService.isZAPConnected() ? 'Connected to ZAP' : 'ZAP not connected (using demo mode)'}
+            </span>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button className="mobile-button-primary">
+              Save Configuration
+            </button>
+            <button className="mobile-button-secondary">
+              Test Connection
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   const renderMobileOptimization = () => (
     <div className="space-y-6">
-      <MobilePerformanceMonitor 
+      <MobilePerformanceMonitor
         autoRun={false}
         showRecommendations={true}
       />
