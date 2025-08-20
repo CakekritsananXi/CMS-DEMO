@@ -160,35 +160,51 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({ ch
     }
   }, [window.location.pathname, isConnected]);
 
-  const connect = async (): Promise<boolean> => {
+  const connect = useCallback(async (): Promise<boolean> => {
     if (!user) return false;
-    
+
     setIsLoading(true);
+    setError(null);
+
     try {
       const connected = await collaborationService.connect({
         id: user.id,
         name: user.name,
         avatar: user.avatar
       });
-      
+
       setIsConnected(connected);
-      
+
       if (connected) {
+        setReconnectAttempts(0);
         refreshActiveUsers();
         refreshComments();
-        
+
         // Start activity simulation
         collaborationService.simulateActivity();
+      } else {
+        setError('Failed to establish connection');
       }
-      
+
       return connected;
-    } catch (error) {
-      console.error('Failed to connect to collaboration service:', error);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Connection failed';
+      setError(errorMessage);
+      console.error('Failed to connect to collaboration service:', err);
       return false;
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
+
+  const retry = useCallback(async (): Promise<boolean> => {
+    setReconnectAttempts(prev => prev + 1);
+    return connect();
+  }, [connect]);
+
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
 
   const disconnect = () => {
     collaborationService.disconnect();
