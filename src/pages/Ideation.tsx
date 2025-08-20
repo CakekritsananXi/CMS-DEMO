@@ -84,6 +84,17 @@ const Ideation = () => {
     }
   };
 
+  const handleAISuggestionSelect = (suggestion: any) => {
+    setNewIdeaData({
+      title: suggestion.title,
+      description: suggestion.description,
+      category: suggestion.category,
+      priority: suggestion.confidence >= 0.9 ? 'high' : suggestion.confidence >= 0.8 ? 'medium' : 'low',
+      tags: [suggestion.category.toLowerCase(), 'ai-suggested']
+    });
+    setShowNewIdeaModal(true);
+  };
+
   const handleAddTag = () => {
     if (tagInput.trim() && !newIdeaData.tags.includes(tagInput.trim())) {
       setNewIdeaData(prev => ({
@@ -275,81 +286,90 @@ const Ideation = () => {
         </div>
       </div>
 
-      {/* Ideas Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        {filteredIdeas.map((idea) => (
-          <div key={idea.id} className="bg-white rounded-2xl p-6 shadow-soft border border-neutral-100 hover:shadow-medium transition-all duration-250 group">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex-1">
-                <h3 className="font-semibold text-neutral-900 mb-2 line-clamp-2">{idea.title}</h3>
-                <p className="text-sm text-neutral-600 line-clamp-3 mb-3">{idea.description}</p>
-              </div>
-              <button 
-                onClick={() => voteOnIdea(idea.id, true)}
-                className="flex items-center space-x-1 text-sm text-neutral-500 hover:text-sage transition-colors"
+      {/* Main Content Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-8">
+        {/* AI Suggestions Sidebar */}
+        <div className="lg:col-span-1">
+          <AISuggestions onSuggestionSelect={handleAISuggestionSelect} />
+        </div>
+
+        {/* Ideas Grid */}
+        <div className="lg:col-span-3">
+          {filteredIdeas.length === 0 ? (
+            <div className="text-center py-12">
+              <Lightbulb className="w-12 h-12 text-neutral-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-neutral-900 mb-2">No ideas found</h3>
+              <p className="text-neutral-600 mb-4">
+                {searchTerm || selectedCategory || selectedStatus 
+                  ? 'Try adjusting your filters or search term'
+                  : 'Get started by creating your first idea'
+                }
+              </p>
+              <button
+                onClick={() => setShowNewIdeaModal(true)}
+                className="bg-sage text-white px-6 py-3 rounded-xl font-medium hover:bg-sage/90 transition-colors duration-200"
               >
-                <Star className="w-4 h-4" />
-                <span>{idea.votes}</span>
+                Create New Idea
               </button>
             </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {filteredIdeas.map((idea) => (
+                <div key={idea.id} className="bg-white rounded-2xl p-6 shadow-soft border border-neutral-100 hover:shadow-medium transition-all duration-250 group">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-neutral-900 mb-2 line-clamp-2">{idea.title}</h3>
+                      <p className="text-sm text-neutral-600 line-clamp-3 mb-3">{idea.description}</p>
+                    </div>
+                    <button 
+                      onClick={() => voteOnIdea(idea.id, true)}
+                      className="flex items-center space-x-1 text-sm text-neutral-500 hover:text-sage transition-colors"
+                    >
+                      <Star className="w-4 h-4" />
+                      <span>{idea.votes}</span>
+                    </button>
+                  </div>
 
-            <div className="flex items-center justify-between mb-3">
-              <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${getStatusColor(idea.status)}`}>
-                {idea.status}
-              </span>
-              <span className={`text-xs font-medium ${getPriorityColor(idea.priority)}`}>
-                {idea.priority} priority
-              </span>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className={`px-2 py-1 rounded-lg text-xs font-medium border ${getStatusColor(idea.status)}`}>
+                      {idea.status}
+                    </span>
+                    <span className={`text-xs font-medium ${getPriorityColor(idea.priority)}`}>
+                      {idea.priority} priority
+                    </span>
+                  </div>
+
+                  {idea.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {idea.tags.slice(0, 3).map((tag, index) => (
+                        <span key={index} className="px-2 py-1 bg-neutral-100 text-neutral-600 text-xs rounded-lg">
+                          {tag}
+                        </span>
+                      ))}
+                      {idea.tags.length > 3 && (
+                        <span className="text-xs text-neutral-500">+{idea.tags.length - 3} more</span>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between text-xs text-neutral-500">
+                    <div className="flex items-center space-x-1">
+                      <User className="w-3 h-3" />
+                      <span>{idea.authorId}</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <MessageSquare className="w-3 h-3" />
+                      <span>{idea.comments.length}</span>
+                    </div>
+                  </div>
+
+                  <TypingIndicator contentId={idea.id} className="mt-2" />
+                </div>
+              ))}
             </div>
-
-            {idea.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1 mb-3">
-                {idea.tags.slice(0, 3).map((tag, index) => (
-                  <span key={index} className="px-2 py-1 bg-neutral-100 text-neutral-600 text-xs rounded-lg">
-                    {tag}
-                  </span>
-                ))}
-                {idea.tags.length > 3 && (
-                  <span className="text-xs text-neutral-500">+{idea.tags.length - 3} more</span>
-                )}
-              </div>
-            )}
-
-            <div className="flex items-center justify-between text-xs text-neutral-500">
-              <div className="flex items-center space-x-1">
-                <User className="w-3 h-3" />
-                <span>{idea.authorId}</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <MessageSquare className="w-3 h-3" />
-                <span>{idea.comments.length}</span>
-              </div>
-            </div>
-
-            <TypingIndicator contentId={idea.id} className="mt-2" />
-          </div>
-        ))}
-      </div>
-
-      {/* Empty State */}
-      {filteredIdeas.length === 0 && (
-        <div className="text-center py-12">
-          <Lightbulb className="w-12 h-12 text-neutral-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-neutral-900 mb-2">No ideas found</h3>
-          <p className="text-neutral-600 mb-4">
-            {searchTerm || selectedCategory || selectedStatus 
-              ? 'Try adjusting your filters or search term'
-              : 'Get started by creating your first idea'
-            }
-          </p>
-          <button
-            onClick={() => setShowNewIdeaModal(true)}
-            className="bg-sage text-white px-6 py-3 rounded-xl font-medium hover:bg-sage/90 transition-colors duration-200"
-          >
-            Create New Idea
-          </button>
+          )}
         </div>
-      )}
+      </div>
 
       {/* New Idea Modal */}
       {showNewIdeaModal && (
