@@ -70,13 +70,18 @@ const Security: React.FC = () => {
 
   const handleTabChange = async (tab: typeof activeTab) => {
     setActiveTab(tab);
-    
+
     // Track tab navigation
-    await trackingService.trackEvent('security_tab_changed', 'user_action', {
-      from_tab: activeTab,
-      to_tab: tab,
-      device_type: deviceCapabilities.device_type
-    });
+    try {
+      await trackingService.trackEvent('security_tab_changed', 'user_action', {
+        from_tab: activeTab,
+        to_tab: tab,
+        device_type: deviceCapabilities.device_type
+      });
+    } catch (error) {
+      // Silently handle tracking errors
+      console.warn('Tracking failed:', error?.message || 'Service unavailable');
+    }
   };
 
   const handleStartScan = async (target: string, scanType: 'spider' | 'active' | 'baseline' = 'baseline') => {
