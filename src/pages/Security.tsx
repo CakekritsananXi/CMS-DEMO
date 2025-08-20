@@ -20,16 +20,18 @@ const Security: React.FC = () => {
 
   useEffect(() => {
     initializeSecurity();
-    
+
     // Track page view with device information
     trackingService.trackPageView('/security').then(() => {
-      trackingService.trackEvent('security_page_loaded', 'page_view', {
+      return trackingService.trackEvent('security_page_loaded', 'page_view', {
         device_type: deviceCapabilities.isMobile ? 'mobile' : deviceCapabilities.isTablet ? 'tablet' : 'desktop',
         screen_size: `${deviceCapabilities.screenSize.width}x${deviceCapabilities.screenSize.height}`,
         viewport_size: `${deviceCapabilities.viewport.width}x${deviceCapabilities.viewport.height}`,
         is_touch_device: deviceCapabilities.isTouchDevice,
         connection_speed: deviceCapabilities.connectionSpeed
       });
+    }).catch(error => {
+      console.warn('Tracking service unavailable:', error?.message || 'Service error');
     });
   }, []);
 
