@@ -29,6 +29,8 @@ interface CollaborationContextType {
   // Actions
   connect: () => Promise<boolean>;
   disconnect: () => void;
+  retry: () => Promise<boolean>;
+  clearError: () => void;
   updatePresence: (location: string, cursor?: { x: number; y: number }) => void;
   addComment: (contentId: string, content: string, position?: { x: number; y: number }) => Comment | null;
   replyToComment: (commentId: string, content: string) => Comment | null;
