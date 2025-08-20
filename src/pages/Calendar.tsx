@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Grid3X3, List, Calendar as CalendarIcon, Filter, X } from 'lucide-react';
-import { addMonths, subMonths, format } from 'date-fns';
+import { ChevronLeft, ChevronRight, Plus, Grid3X3, List, Calendar as CalendarIcon, Filter, X, MoreHorizontal } from 'lucide-react';
+import { addMonths, subMonths, addWeeks, subWeeks, addDays, subDays, format, startOfYear, endOfYear, eachMonthOfInterval } from 'date-fns';
 import CalendarGrid from '../components/calendar/CalendarGrid';
 import ContentCard from '../components/calendar/ContentCard';
 
@@ -8,6 +8,7 @@ const Calendar = () => {
   const [view, setView] = useState<'month' | 'week' | 'day'>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showNewContentModal, setShowNewContentModal] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [newContentData, setNewContentData] = useState({
     title: '',
@@ -24,9 +25,48 @@ const Calendar = () => {
     { key: 'day', label: 'Day', icon: CalendarIcon },
   ];
 
-  const navigateMonth = (direction: 'prev' | 'next') => {
-    setCurrentDate(prev => direction === 'next' ? addMonths(prev, 1) : subMonths(prev, 1));
+  const navigate = (direction: 'prev' | 'next') => {
+    setCurrentDate(prev => {
+      switch (view) {
+        case 'month':
+          return direction === 'next' ? addMonths(prev, 1) : subMonths(prev, 1);
+        case 'week':
+          return direction === 'next' ? addWeeks(prev, 1) : subWeeks(prev, 1);
+        case 'day':
+          return direction === 'next' ? addDays(prev, 1) : subDays(prev, 1);
+        default:
+          return prev;
+      }
+    });
   };
+
+  const goToToday = () => {
+    setCurrentDate(new Date());
+  };
+
+  const goToDate = (date: Date) => {
+    setCurrentDate(date);
+    setShowDatePicker(false);
+  };
+
+  const getNavigationLabel = () => {
+    switch (view) {
+      case 'month':
+        return format(currentDate, 'MMMM yyyy');
+      case 'week':
+        return `Week of ${format(currentDate, 'MMM d, yyyy')}`;
+      case 'day':
+        return format(currentDate, 'EEEE, MMMM d, yyyy');
+      default:
+        return format(currentDate, 'MMMM yyyy');
+    }
+  };
+
+  const currentYear = currentDate.getFullYear();
+  const months = eachMonthOfInterval({
+    start: startOfYear(currentDate),
+    end: endOfYear(currentDate)
+  });
 
   const handleOpenNewContentModal = (date?: Date) => {
     if (date) {
@@ -103,22 +143,92 @@ const Calendar = () => {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center space-x-2 sm:space-x-4">
             <div className="flex items-center space-x-2">
-              <button 
-                onClick={() => navigateMonth('prev')}
+              <button
+                onClick={() => navigate('prev')}
                 className="p-2 hover:bg-neutral-100 rounded-lg transition-colors duration-200"
+                title={`Previous ${view}`}
               >
                 <ChevronLeft className="w-5 h-5 text-neutral-600" />
               </button>
-              <h2 className="text-lg sm:text-xl font-semibold text-neutral-900 min-w-[160px] sm:min-w-[200px] text-center">
-                {format(currentDate, 'MMMM yyyy')}
-              </h2>
-              <button 
-                onClick={() => navigateMonth('next')}
+
+              <div className="relative">
+                <button
+                  onClick={() => setShowDatePicker(!showDatePicker)}
+                  className="text-lg sm:text-xl font-semibold text-neutral-900 min-w-[160px] sm:min-w-[240px] text-center hover:bg-neutral-50 px-3 py-2 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
+                >
+                  <span>{getNavigationLabel()}</span>
+                  <MoreHorizontal className="w-4 h-4 text-neutral-400" />
+                </button>
+
+                {showDatePicker && (
+                  <div className="absolute top-full left-0 mt-2 bg-white border border-neutral-200 rounded-xl shadow-lg p-4 z-50 min-w-[280px]">
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <button
+                          onClick={() => setCurrentDate(prev => new Date(prev.getFullYear() - 1, prev.getMonth(), prev.getDate()))}
+                          className="p-1 hover:bg-neutral-100 rounded"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </button>
+                        <span className="font-semibold">{currentYear}</span>
+                        <button
+                          onClick={() => setCurrentDate(prev => new Date(prev.getFullYear() + 1, prev.getMonth(), prev.getDate()))}
+                          className="p-1 hover:bg-neutral-100 rounded"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2">
+                        {months.map((month) => (
+                          <button
+                            key={month.getTime()}
+                            onClick={() => goToDate(month)}
+                            className={`px-3 py-2 text-sm rounded-lg transition-colors duration-200 ${
+                              month.getMonth() === currentDate.getMonth()
+                                ? 'bg-sage text-white'
+                                : 'hover:bg-neutral-100 text-neutral-700'
+                            }`}
+                          >
+                            {format(month, 'MMM')}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-3 border-t border-neutral-100">
+                      <button
+                        onClick={goToToday}
+                        className="px-4 py-2 bg-sage text-white rounded-lg text-sm font-medium hover:bg-sage/90 transition-colors duration-200"
+                      >
+                        Today
+                      </button>
+                      <button
+                        onClick={() => setShowDatePicker(false)}
+                        className="px-4 py-2 border border-neutral-200 rounded-lg text-sm font-medium hover:bg-neutral-50 transition-colors duration-200"
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={() => navigate('next')}
                 className="p-2 hover:bg-neutral-100 rounded-lg transition-colors duration-200"
+                title={`Next ${view}`}
               >
                 <ChevronRight className="w-5 h-5 text-neutral-600" />
               </button>
             </div>
+
+            <button
+              onClick={goToToday}
+              className="px-3 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100 rounded-lg transition-colors duration-200 hidden sm:block"
+            >
+              Today
+            </button>
           </div>
 
           <div className="flex bg-neutral-100 rounded-xl p-1">
@@ -174,6 +284,14 @@ const Calendar = () => {
         />
       </div>
       </div>
+
+      {/* Click outside to close date picker */}
+      {showDatePicker && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setShowDatePicker(false)}
+        />
+      )}
 
       {/* New Content Modal */}
       {showNewContentModal && (
