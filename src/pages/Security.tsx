@@ -20,16 +20,18 @@ const Security: React.FC = () => {
 
   useEffect(() => {
     initializeSecurity();
-    
+
     // Track page view with device information
     trackingService.trackPageView('/security').then(() => {
-      trackingService.trackEvent('security_page_loaded', 'page_view', {
+      return trackingService.trackEvent('security_page_loaded', 'page_view', {
         device_type: deviceCapabilities.isMobile ? 'mobile' : deviceCapabilities.isTablet ? 'tablet' : 'desktop',
         screen_size: `${deviceCapabilities.screenSize.width}x${deviceCapabilities.screenSize.height}`,
         viewport_size: `${deviceCapabilities.viewport.width}x${deviceCapabilities.viewport.height}`,
         is_touch_device: deviceCapabilities.isTouchDevice,
         connection_speed: deviceCapabilities.connectionSpeed
       });
+    }).catch(error => {
+      console.warn('Tracking service unavailable:', error?.message || 'Service error');
     });
   }, []);
 
@@ -37,11 +39,12 @@ const Security: React.FC = () => {
     setIsLoading(true);
     try {
       await securityService.initialize();
-      refreshData();
     } catch (error) {
-      console.error('Failed to initialize security service:', error);
-      refreshData();
+      // Silently handle initialization errors since service falls back to mock data
+      console.warn('Security service using demo mode:', error?.message || 'Service unavailable');
     } finally {
+      // Always refresh data, even in demo mode
+      refreshData();
       setIsLoading(false);
     }
   };
@@ -67,13 +70,18 @@ const Security: React.FC = () => {
 
   const handleTabChange = async (tab: typeof activeTab) => {
     setActiveTab(tab);
-    
+
     // Track tab navigation
-    await trackingService.trackEvent('security_tab_changed', 'user_action', {
-      from_tab: activeTab,
-      to_tab: tab,
-      device_type: deviceCapabilities.device_type
-    });
+    try {
+      await trackingService.trackEvent('security_tab_changed', 'user_action', {
+        from_tab: activeTab,
+        to_tab: tab,
+        device_type: deviceCapabilities.device_type
+      });
+    } catch (error) {
+      // Silently handle tracking errors
+      console.warn('Tracking failed:', error?.message || 'Service unavailable');
+    }
   };
 
   const handleStartScan = async (target: string, scanType: 'spider' | 'active' | 'baseline' = 'baseline') => {
@@ -81,11 +89,15 @@ const Security: React.FC = () => {
 
     try {
       // Track scan initiation
-      await trackingService.trackEvent('security_scan_started', 'user_action', {
-        scan_type: scanType,
-        target_url: target,
-        device_type: deviceCapabilities.device_type
-      });
+      try {
+        await trackingService.trackEvent('security_scan_started', 'user_action', {
+          scan_type: scanType,
+          target_url: target,
+          device_type: deviceCapabilities.device_type
+        });
+      } catch (error) {
+        console.warn('Tracking failed:', error?.message);
+      }
 
       await securityService.startScan(target, scanType);
       setNewScanTarget('');
@@ -108,12 +120,16 @@ const Security: React.FC = () => {
       console.error('Failed to start scan:', error);
       
       // Track scan error
-      await trackingService.trackEvent('security_scan_error', 'error', {
-        scan_type: scanType,
-        target_url: target,
-        error: error.message || 'Unknown error',
-        device_type: deviceCapabilities.device_type
-      });
+      try {
+        await trackingService.trackEvent('security_scan_error', 'error', {
+          scan_type: scanType,
+          target_url: target,
+          error: error.message || 'Unknown error',
+          device_type: deviceCapabilities.device_type
+        });
+      } catch (trackingError) {
+        console.warn('Tracking failed:', trackingError?.message);
+      }
       
       alert(`Failed to start scan: ${error.message || 'Unknown error'}`);
     }
@@ -121,19 +137,27 @@ const Security: React.FC = () => {
 
   const handleStopScan = async (scanId: string) => {
     await securityService.stopScan(scanId);
-    await trackingService.trackEvent('security_scan_stopped', 'user_action', {
-      scan_id: scanId,
-      device_type: deviceCapabilities.device_type
-    });
+    try {
+      await trackingService.trackEvent('security_scan_stopped', 'user_action', {
+        scan_id: scanId,
+        device_type: deviceCapabilities.device_type
+      });
+    } catch (error) {
+      console.warn('Tracking failed:', error?.message);
+    }
     refreshData();
   };
 
   const handleDeleteScan = async (scanId: string) => {
     securityService.deleteScan(scanId);
-    await trackingService.trackEvent('security_scan_deleted', 'user_action', {
-      scan_id: scanId,
-      device_type: deviceCapabilities.device_type
-    });
+    try {
+      await trackingService.trackEvent('security_scan_deleted', 'user_action', {
+        scan_id: scanId,
+        device_type: deviceCapabilities.device_type
+      });
+    } catch (error) {
+      console.warn('Tracking failed:', error?.message);
+    }
     refreshData();
   };
 

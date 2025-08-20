@@ -98,7 +98,7 @@ const Navigation = () => {
               <div className="w-8 h-8 bg-sage rounded-xl flex items-center justify-center">
                 <PenTool className="w-4 h-4 text-white" />
               </div>
-              <span className="text-lg sm:text-xl font-semibold text-neutral-800 hidden xs:inline">
+              <span className="text-lg sm:text-xl font-semibold text-neutral-800 hidden sm:inline">
                 ContentFlow
               </span>
             </div>
@@ -141,7 +141,7 @@ const Navigation = () => {
             {/* Tablet Navigation */}
             <div className="hidden md:flex lg:hidden items-center space-x-2">
               <div className="flex space-x-1">
-                {navItems.slice(0, 5).map(({ path, icon: Icon, label }) => (
+                {navItems.slice(0, 6).map(({ path, icon: Icon, label }) => (
                   <NavLink
                     key={path}
                     to={path}

@@ -73,9 +73,10 @@ class SecurityService {
         return true;
       }
     } catch (error) {
-      console.warn('ZAP not available, using mock data for demo:', error.message);
+      console.warn('ZAP not available, using mock data for demo:', error?.message || 'Connection failed');
       this.isConnected = false;
       this.initializeMockData();
+      return false;
     }
     return false;
   }
@@ -97,7 +98,7 @@ class SecurityService {
 
       // Create abort controller for timeout
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // Reduced timeout
 
       const response = await fetch(url.toString(), {
         method: 'GET',
@@ -116,12 +117,14 @@ class SecurityService {
       return response.json();
     } catch (error) {
       // Handle network errors, timeouts, and other fetch failures
-      if (error.name === 'AbortError') {
+      if (error?.name === 'AbortError') {
         throw new Error('ZAP API request timeout');
-      } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      } else if (error?.name === 'TypeError') {
         throw new Error('Unable to connect to ZAP - service not available');
+      } else if (error?.message?.includes('Failed to fetch')) {
+        throw new Error('Unable to connect to ZAP - network error');
       }
-      throw error;
+      throw new Error(`ZAP API error: ${error?.message || 'Unknown error'}`);
     }
   }
 

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Grid3X3, List, Calendar as CalendarIcon, Filter, X, MoreHorizontal } from 'lucide-react';
 import { addMonths, subMonths, addWeeks, subWeeks, addDays, subDays, format, startOfYear, endOfYear, eachMonthOfInterval } from 'date-fns';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import CalendarGrid from '../components/calendar/CalendarGrid';
 import ContentCard from '../components/calendar/ContentCard';
 
@@ -215,7 +217,7 @@ const Calendar = () => {
     }
   };
   return (
-    <>
+    <DndProvider backend={HTML5Backend}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 gap-4">
         <div>
@@ -776,7 +778,7 @@ const Calendar = () => {
           </div>
         </div>
       )}
-    </>
+    </DndProvider>
   );
 };
 
