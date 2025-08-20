@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Lightbulb, Target, TrendingUp, Clock, Users, ArrowUp, ArrowDown } from 'lucide-react';
+import { Calendar, Lightbulb, Target, TrendingUp, Clock, Users, ArrowUp, ArrowDown, Smartphone } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
 import QuickActions from '../components/dashboard/QuickActions';
 import RecentActivity from '../components/dashboard/RecentActivity';
 import ContentPillars from '../components/dashboard/ContentPillars';
 import UpcomingDeadlines from '../components/dashboard/UpcomingDeadlines';
+import MobileOptimizationSummary from '../components/mobile/MobileOptimizationSummary';
+import { useAnalytics } from '../hooks/useAnalytics';
+import { getDeviceCapabilities } from '../utils/mobile';
 
 const Dashboard = () => {
   // Sample content data (in real app, this would come from props or context)
