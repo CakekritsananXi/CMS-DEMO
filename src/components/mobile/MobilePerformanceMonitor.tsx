@@ -140,6 +140,12 @@ const MobilePerformanceMonitor: React.FC<MobilePerformanceMonitorProps> = ({
       </div>
 
       <div className="p-6">
+        {showTrackingConfig && (
+          <div className="mb-6">
+            <TrackingConfiguration />
+          </div>
+        )}
+
         {isLoading && (
           <div className="text-center py-8">
             <div className="w-8 h-8 bg-blue-100 rounded-full animate-spin mx-auto mb-3 flex items-center justify-center">
