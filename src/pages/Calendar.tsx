@@ -112,6 +112,17 @@ const Calendar = () => {
     end: endOfYear(currentDate)
   });
 
+  const getFilteredContent = () => {
+    return contentItems.filter(item => {
+      if (filters.type && item.type !== filters.type) return false;
+      if (filters.status && item.status !== filters.status) return false;
+      if (filters.assignee && item.assignee !== filters.assignee) return false;
+      if (filters.pillar && item.pillar !== filters.pillar) return false;
+      if (filters.priority && item.priority !== filters.priority) return false;
+      return true;
+    });
+  };
+
   const handleOpenNewContentModal = (date?: Date) => {
     if (date) {
       setSelectedDate(date);
