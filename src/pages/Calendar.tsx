@@ -16,8 +16,14 @@ const Calendar = () => {
     type: 'blog',
     pillar: '',
     scheduledDate: '',
-    scheduledTime: '09:00'
+    scheduledTime: '09:00',
+    priority: 'medium',
+    assignee: '',
+    tags: [],
+    status: 'draft'
   });
+  const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [isCreating, setIsCreating] = useState(false);
 
   const viewButtons = [
     { key: 'month', label: 'Month', icon: Grid3X3 },
@@ -88,30 +94,67 @@ const Calendar = () => {
   const handleCloseModal = () => {
     setShowNewContentModal(false);
     setSelectedDate(null);
+    setErrors({});
     setNewContentData({
       title: '',
       description: '',
       type: 'blog',
       pillar: '',
       scheduledDate: '',
-      scheduledTime: '09:00'
+      scheduledTime: '09:00',
+      priority: 'medium',
+      assignee: '',
+      tags: [],
+      status: 'draft'
     });
   };
 
-  const handleCreateContent = () => {
+  const validateForm = () => {
+    const newErrors: {[key: string]: string} = {};
+
     if (!newContentData.title.trim()) {
-      alert('Please enter a content title');
+      newErrors.title = 'Title is required';
+    }
+
+    if (!newContentData.scheduledDate) {
+      newErrors.scheduledDate = 'Date is required';
+    }
+
+    if (!newContentData.pillar) {
+      newErrors.pillar = 'Content pillar is required';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleCreateContent = async () => {
+    if (!validateForm()) {
       return;
     }
-    
-    console.log('Creating content:', {
-      ...newContentData,
-      scheduledDateTime: `${newContentData.scheduledDate} ${newContentData.scheduledTime}`
-    });
-    
-    // Here you would typically save to your state management or API
-    alert('Content scheduled successfully!');
-    handleCloseModal();
+
+    setIsCreating(true);
+
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      console.log('Creating content:', {
+        ...newContentData,
+        scheduledDateTime: `${newContentData.scheduledDate} ${newContentData.scheduledTime}`,
+        id: Date.now(),
+        createdAt: new Date().toISOString()
+      });
+
+      // Here you would typically save to your state management or API
+      alert('Content scheduled successfully!');
+      handleCloseModal();
+    } catch (error) {
+      console.error('Error creating content:', error);
+      alert('Failed to create content. Please try again.');
+    } finally {
+      setIsCreating(false);
+    }
   };
   return (
     <>
@@ -315,22 +358,34 @@ const Calendar = () => {
             </div>
             
             <div className="space-y-4 sm:space-y-6">
-              <input
-                type="text"
-                value={newContentData.title}
-                onChange={(e) => setNewContentData(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="Content title..."
-                className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-sage/20 focus:border-sage transition-all duration-200"
-                autoFocus
-              />
+              <div>
+                <input
+                  type="text"
+                  value={newContentData.title}
+                  onChange={(e) => {
+                    setNewContentData(prev => ({ ...prev, title: e.target.value }));
+                    if (errors.title) setErrors(prev => ({ ...prev, title: '' }));
+                  }}
+                  placeholder="Content title..."
+                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-sage/20 focus:border-sage transition-all duration-200 ${
+                    errors.title ? 'border-red-300' : 'border-neutral-200'
+                  }`}
+                  autoFocus
+                />
+                {errors.title && (
+                  <p className="text-red-500 text-sm mt-1">{errors.title}</p>
+                )}
+              </div>
               
-              <textarea
-                value={newContentData.description}
-                onChange={(e) => setNewContentData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Content description..."
-                rows={4}
-                className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-sage/20 focus:border-sage transition-all duration-200 resize-none"
-              />
+              <div>
+                <textarea
+                  value={newContentData.description}
+                  onChange={(e) => setNewContentData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Content description..."
+                  rows={4}
+                  className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-sage/20 focus:border-sage transition-all duration-200 resize-none"
+                />
+              </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -352,12 +407,17 @@ const Calendar = () => {
                 
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Content Pillar
+                    Content Pillar *
                   </label>
                   <select
                     value={newContentData.pillar}
-                    onChange={(e) => setNewContentData(prev => ({ ...prev, pillar: e.target.value }))}
-                    className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-sage/20 focus:border-sage transition-all duration-200"
+                    onChange={(e) => {
+                      setNewContentData(prev => ({ ...prev, pillar: e.target.value }));
+                      if (errors.pillar) setErrors(prev => ({ ...prev, pillar: '' }));
+                    }}
+                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-sage/20 focus:border-sage transition-all duration-200 ${
+                      errors.pillar ? 'border-red-300' : 'border-neutral-200'
+                    }`}
                   >
                     <option value="">Select pillar...</option>
                     <option value="Thought Leadership">Thought Leadership</option>
@@ -365,22 +425,33 @@ const Calendar = () => {
                     <option value="Industry Insights">Industry Insights</option>
                     <option value="Community Building">Community Building</option>
                   </select>
+                  {errors.pillar && (
+                    <p className="text-red-500 text-sm mt-1">{errors.pillar}</p>
+                  )}
                 </div>
               </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Scheduled Date
+                    Scheduled Date *
                   </label>
                   <input
                     type="date"
                     value={newContentData.scheduledDate}
-                    onChange={(e) => setNewContentData(prev => ({ ...prev, scheduledDate: e.target.value }))}
-                    className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-sage/20 focus:border-sage transition-all duration-200"
+                    onChange={(e) => {
+                      setNewContentData(prev => ({ ...prev, scheduledDate: e.target.value }));
+                      if (errors.scheduledDate) setErrors(prev => ({ ...prev, scheduledDate: '' }));
+                    }}
+                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-sage/20 focus:border-sage transition-all duration-200 ${
+                      errors.scheduledDate ? 'border-red-300' : 'border-neutral-200'
+                    }`}
                   />
+                  {errors.scheduledDate && (
+                    <p className="text-red-500 text-sm mt-1">{errors.scheduledDate}</p>
+                  )}
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-2">
                     Scheduled Time
@@ -393,6 +464,59 @@ const Calendar = () => {
                   />
                 </div>
               </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Priority
+                  </label>
+                  <select
+                    value={newContentData.priority}
+                    onChange={(e) => setNewContentData(prev => ({ ...prev, priority: e.target.value }))}
+                    className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-sage/20 focus:border-sage transition-all duration-200"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Status
+                  </label>
+                  <select
+                    value={newContentData.status}
+                    onChange={(e) => setNewContentData(prev => ({ ...prev, status: e.target.value }))}
+                    className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-sage/20 focus:border-sage transition-all duration-200"
+                  >
+                    <option value="draft">Draft</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="review">Under Review</option>
+                    <option value="approved">Approved</option>
+                    <option value="scheduled">Scheduled</option>
+                    <option value="published">Published</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  Assignee
+                </label>
+                <select
+                  value={newContentData.assignee}
+                  onChange={(e) => setNewContentData(prev => ({ ...prev, assignee: e.target.value }))}
+                  className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-sage/20 focus:border-sage transition-all duration-200"
+                >
+                  <option value="">Assign to...</option>
+                  <option value="john-doe">John Doe</option>
+                  <option value="jane-smith">Jane Smith</option>
+                  <option value="mike-johnson">Mike Johnson</option>
+                  <option value="sarah-wilson">Sarah Wilson</option>
+                </select>
+              </div>
               
               <div className="flex flex-col sm:flex-row items-center justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-4">
                 <button
@@ -403,9 +527,17 @@ const Calendar = () => {
                 </button>
                 <button
                   onClick={handleCreateContent}
-                  className="w-full sm:w-auto bg-sage text-white px-6 py-3 rounded-xl font-medium hover:bg-sage/90 transition-colors duration-200"
+                  disabled={isCreating}
+                  className="w-full sm:w-auto bg-sage text-white px-6 py-3 rounded-xl font-medium hover:bg-sage/90 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
                 >
-                  Schedule Content
+                  {isCreating ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Creating...</span>
+                    </>
+                  ) : (
+                    <span>Schedule Content</span>
+                  )}
                 </button>
               </div>
             </div>
