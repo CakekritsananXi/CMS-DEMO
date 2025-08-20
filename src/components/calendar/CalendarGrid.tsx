@@ -33,7 +33,8 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
   contentItems = [],
   onContentMove,
   onContentEdit,
-  onContentDelete
+  onContentDelete,
+  onContentDuplicate
 }) => {
   const getContentForDate = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
@@ -100,6 +101,7 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
                 }}
                 onContentEdit={onContentEdit}
                 onContentDelete={onContentDelete}
+                onContentDuplicate={onContentDuplicate}
               />
             );
           })}
@@ -189,6 +191,7 @@ interface CalendarDayProps {
   onContentDrop?: (content: any) => void;
   onContentEdit?: (contentId: string) => void;
   onContentDelete?: (contentId: string) => void;
+  onContentDuplicate?: (contentId: string) => void;
 }
 
 const CalendarDay: React.FC<CalendarDayProps> = ({
@@ -199,7 +202,8 @@ const CalendarDay: React.FC<CalendarDayProps> = ({
   contentItems = [],
   onContentDrop,
   onContentEdit,
-  onContentDelete
+  onContentDelete,
+  onContentDuplicate
 }) => {
   const [{ isOver }, drop] = useDrop({
     accept: ['content', 'content-card'],
