@@ -60,40 +60,132 @@ export interface MobileOptimizationMetrics {
 class LighthouseService {
   private apiKey: string | null = null;
   private baseUrl = 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed';
+  private lastRequestTime = 0;
+  private requestCount = 0;
+  private rateLimitResetTime = 0;
+  private readonly MIN_REQUEST_INTERVAL = 2000; // 2 seconds between requests
+  private readonly MAX_REQUESTS_PER_MINUTE = 10;
 
   setApiKey(key: string) {
     this.apiKey = key;
   }
 
-  async runAudit(config: LighthouseConfig): Promise<LighthouseResult> {
-    const params = new URLSearchParams({
-      url: config.url,
-      strategy: config.device,
-      category: config.categories.join(','),
-    });
+  private async waitForRateLimit(): Promise<void> {
+    const now = Date.now();
 
-    if (this.apiKey) {
-      params.append('key', this.apiKey);
+    // Reset counter if a minute has passed
+    if (now - this.rateLimitResetTime > 60000) {
+      this.requestCount = 0;
+      this.rateLimitResetTime = now;
     }
 
-    try {
+    // Check if we've hit the rate limit
+    if (this.requestCount >= this.MAX_REQUESTS_PER_MINUTE) {
+      const waitTime = 60000 - (now - this.rateLimitResetTime);
+      if (waitTime > 0) {
+        console.log(`Rate limit reached. Waiting ${Math.ceil(waitTime / 1000)} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        this.requestCount = 0;
+        this.rateLimitResetTime = Date.now();
+      }
+    }
+
+    // Ensure minimum interval between requests
+    const timeSinceLastRequest = now - this.lastRequestTime;
+    if (timeSinceLastRequest < this.MIN_REQUEST_INTERVAL) {
+      const waitTime = this.MIN_REQUEST_INTERVAL - timeSinceLastRequest;
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+
+    this.lastRequestTime = Date.now();
+    this.requestCount++;
+  }
+
+  private async retryWithBackoff<T>(
+    operation: () => Promise<T>,
+    maxRetries: number = 3,
+    baseDelay: number = 1000
+  ): Promise<T> {
+    let lastError: Error;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        if (attempt > 0) {
+          const delay = baseDelay * Math.pow(2, attempt - 1);
+          console.log(`Retrying request in ${delay}ms (attempt ${attempt}/${maxRetries})`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+
+        return await operation();
+      } catch (error) {
+        lastError = error as Error;
+
+        // If it's a rate limit error, wait longer
+        if (error.message.includes('429')) {
+          const waitTime = baseDelay * Math.pow(2, attempt) + Math.random() * 1000;
+          console.log(`Rate limited. Waiting ${Math.ceil(waitTime / 1000)} seconds before retry...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
+
+        // Don't retry on certain errors
+        if (error.message.includes('400') || error.message.includes('401') || error.message.includes('403')) {
+          throw error;
+        }
+
+        if (attempt === maxRetries) {
+          throw lastError;
+        }
+      }
+    }
+
+    throw lastError!;
+  }
+
+  async runAudit(config: LighthouseConfig): Promise<LighthouseResult> {
+    return this.retryWithBackoff(async () => {
+      await this.waitForRateLimit();
+
+      const params = new URLSearchParams({
+        url: config.url,
+        strategy: config.device,
+        category: config.categories.join(','),
+      });
+
+      if (this.apiKey) {
+        params.append('key', this.apiKey);
+      }
+
       const response = await fetch(`${this.baseUrl}?${params}`);
-      
+
       if (!response.ok) {
-        throw new Error(`Lighthouse API request failed: ${response.status}`);
+        let errorMessage = `Lighthouse API request failed: ${response.status}`;
+
+        switch (response.status) {
+          case 429:
+            errorMessage = 'Rate limit exceeded. Please try again in a few minutes or add an API key for higher limits.';
+            break;
+          case 400:
+            errorMessage = 'Invalid request. Please check the URL format.';
+            break;
+          case 403:
+            errorMessage = 'Access forbidden. Please check your API key.';
+            break;
+          case 500:
+            errorMessage = 'Lighthouse service temporarily unavailable. Please try again later.';
+            break;
+        }
+
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
-      
+
       if (data.error) {
         throw new Error(`Lighthouse API error: ${data.error.message}`);
       }
 
       return data.lighthouseResult;
-    } catch (error) {
-      console.error('Lighthouse API error:', error);
-      throw error;
-    }
+    });
   }
 
   async analyzeMobilePerformance(url: string): Promise<MobileOptimizationMetrics> {
@@ -108,8 +200,19 @@ class LighthouseService {
       const result = await this.runAudit(config);
       return this.extractMobileMetrics(result);
     } catch (error) {
-      console.error('Mobile performance analysis failed:', error);
-      // Return mock data for development
+      console.warn('Mobile performance analysis failed:', error);
+
+      // Provide different responses based on error type
+      if (error.message.includes('Rate limit exceeded')) {
+        throw new Error('Rate limit exceeded. Please wait a few minutes before testing again, or consider adding a Google API key for higher limits.');
+      }
+
+      if (error.message.includes('Invalid request')) {
+        throw new Error('Invalid URL format. Please ensure the URL is publicly accessible and includes http:// or https://');
+      }
+
+      // Return mock data for other errors with a warning
+      console.log('Returning mock data due to API limitations');
       return this.getMockMobileMetrics();
     }
   }
