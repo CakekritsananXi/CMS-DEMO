@@ -24,14 +24,31 @@ const Security: React.FC = () => {
       refreshData();
     } catch (error) {
       console.error('Failed to initialize security service:', error);
+      // Even if initialization fails, we can still show the UI with mock data
+      refreshData();
     } finally {
       setIsLoading(false);
     }
   };
 
   const refreshData = () => {
-    setScans(securityService.getScans());
-    setMetrics(securityService.getSecurityMetrics());
+    try {
+      setScans(securityService.getScans());
+      setMetrics(securityService.getSecurityMetrics());
+    } catch (error) {
+      console.error('Error refreshing security data:', error);
+      // Set fallback data if needed
+      setScans([]);
+      setMetrics({
+        totalScans: 0,
+        activeScans: 0,
+        totalVulnerabilities: 0,
+        criticalVulnerabilities: 0,
+        securityScore: 100,
+        riskTrend: 'stable',
+        lastScanDate: 'Never'
+      });
+    }
   };
 
   const handleStartScan = async (target: string, scanType: 'spider' | 'active' | 'baseline' = 'baseline') => {
@@ -40,12 +57,17 @@ const Security: React.FC = () => {
     try {
       await securityService.startScan(target, scanType);
       setNewScanTarget('');
-      
+
       // Refresh data periodically while scans are running
       const interval = setInterval(() => {
-        refreshData();
-        const runningScans = securityService.getScans().filter(s => s.status === 'running');
-        if (runningScans.length === 0) {
+        try {
+          refreshData();
+          const runningScans = securityService.getScans().filter(s => s.status === 'running');
+          if (runningScans.length === 0) {
+            clearInterval(interval);
+          }
+        } catch (error) {
+          console.error('Error refreshing scan data:', error);
           clearInterval(interval);
         }
       }, 2000);
@@ -53,6 +75,8 @@ const Security: React.FC = () => {
       refreshData();
     } catch (error) {
       console.error('Failed to start scan:', error);
+      // Show user-friendly error message (you could add a toast notification here)
+      alert(`Failed to start scan: ${error.message || 'Unknown error'}`);
     }
   };
 
