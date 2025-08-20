@@ -196,6 +196,9 @@ function App() {
                     <Route path="/security" element={<Security />} />
                   </Routes>
                 </main>
+
+                {/* Analytics Status Notice */}
+                <AnalyticsStatusNotice />
               </div>
             </Router>
           </CollaborationProvider>
