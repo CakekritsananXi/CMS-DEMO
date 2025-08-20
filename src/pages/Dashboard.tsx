@@ -48,12 +48,18 @@ const Dashboard = () => {
           <p className="text-xs text-neutral-500 mt-1 hidden sm:block">Content strategy</p>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 shadow-soft border border-neutral-100 hover:shadow-medium transition-shadow duration-250">
+        <div className="bg-white rounded-2xl p-6 shadow-soft border border-neutral-100 hover:shadow-medium transition-shadow duration-250 cursor-pointer group">
           <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 bg-soft-emerald/10 rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-soft-emerald/10 rounded-xl flex items-center justify-center group-hover:bg-soft-emerald/20 transition-colors">
               <TrendingUp className="w-5 h-5 text-soft-emerald" />
             </div>
-            <span className="text-2xl font-bold text-neutral-900">+12%</span>
+            <div className="text-right">
+              <span className="text-2xl font-bold text-neutral-900">+12%</span>
+              <div className="flex items-center text-green-600 text-xs ml-auto">
+                <ArrowUp className="w-3 h-3 mr-1" />
+                +3%
+              </div>
+            </div>
           </div>
           <h3 className="text-xs sm:text-sm font-medium text-neutral-600">Engagement</h3>
           <p className="text-xs text-neutral-500 mt-1 hidden sm:block">vs last month</p>
