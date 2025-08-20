@@ -1,18 +1,20 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { useAuth } from './AuthContext';
-import { 
-  collaborationService, 
-  UserPresence, 
-  Comment, 
-  LiveEdit, 
-  CollaborationEvent 
+import {
+  collaborationService,
+  UserPresence,
+  Comment,
+  LiveEdit,
+  CollaborationEvent
 } from '../services/collaboration';
 
 interface CollaborationContextType {
   // Connection state
   isConnected: boolean;
   isLoading: boolean;
-  
+  error: string | null;
+  reconnectAttempts: number;
+
   // Users and presence
   activeUsers: UserPresence[];
   currentUserPresence: UserPresence | null;
@@ -27,6 +29,8 @@ interface CollaborationContextType {
   // Actions
   connect: () => Promise<boolean>;
   disconnect: () => void;
+  retry: () => Promise<boolean>;
+  clearError: () => void;
   updatePresence: (location: string, cursor?: { x: number; y: number }) => void;
   addComment: (contentId: string, content: string, position?: { x: number; y: number }) => Comment | null;
   replyToComment: (commentId: string, content: string) => Comment | null;
@@ -50,6 +54,8 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({ ch
   const { user } = useAuth();
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [activeUsers, setActiveUsers] = useState<UserPresence[]>([]);
   const [currentUserPresence, setCurrentUserPresence] = useState<UserPresence | null>(null);
   const [comments, setComments] = useState<Map<string, Comment[]>>(new Map());
@@ -65,23 +71,25 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({ ch
     }
   }, [user]);
 
+  // Memoized event handlers for better performance
+  const handleUserJoin = useCallback((data: any) => {
+    refreshActiveUsers();
+  }, []);
+
+  const handleUserLeave = useCallback((data: any) => {
+    refreshActiveUsers();
+  }, []);
+
+  const handlePresenceUpdate = useCallback((data: any) => {
+    refreshActiveUsers();
+    if (data.userId === user?.id) {
+      const presence = collaborationService.getUserPresence(user.id);
+      setCurrentUserPresence(presence);
+    }
+  }, [user?.id]);
+
   // Setup event listeners
   useEffect(() => {
-    const handleUserJoin = (data: any) => {
-      refreshActiveUsers();
-    };
-
-    const handleUserLeave = (data: any) => {
-      refreshActiveUsers();
-    };
-
-    const handlePresenceUpdate = (data: any) => {
-      refreshActiveUsers();
-      if (data.userId === user?.id) {
-        const presence = collaborationService.getUserPresence(user.id);
-        setCurrentUserPresence(presence);
-      }
-    };
 
     const handleContentEdit = (edit: LiveEdit) => {
       setLiveEdits(prev => {
@@ -152,35 +160,51 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({ ch
     }
   }, [window.location.pathname, isConnected]);
 
-  const connect = async (): Promise<boolean> => {
+  const connect = useCallback(async (): Promise<boolean> => {
     if (!user) return false;
-    
+
     setIsLoading(true);
+    setError(null);
+
     try {
       const connected = await collaborationService.connect({
         id: user.id,
         name: user.name,
         avatar: user.avatar
       });
-      
+
       setIsConnected(connected);
-      
+
       if (connected) {
+        setReconnectAttempts(0);
         refreshActiveUsers();
         refreshComments();
-        
+
         // Start activity simulation
         collaborationService.simulateActivity();
+      } else {
+        setError('Failed to establish connection');
       }
-      
+
       return connected;
-    } catch (error) {
-      console.error('Failed to connect to collaboration service:', error);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Connection failed';
+      setError(errorMessage);
+      console.error('Failed to connect to collaboration service:', err);
       return false;
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
+
+  const retry = useCallback(async (): Promise<boolean> => {
+    setReconnectAttempts(prev => prev + 1);
+    return connect();
+  }, [connect]);
+
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
 
   const disconnect = () => {
     collaborationService.disconnect();
@@ -252,9 +276,11 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({ ch
     return users.includes(userId);
   };
 
-  const value: CollaborationContextType = {
+  const value: CollaborationContextType = useMemo(() => ({
     isConnected,
     isLoading,
+    error,
+    reconnectAttempts,
     activeUsers,
     currentUserPresence,
     comments,
@@ -262,6 +288,8 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({ ch
     typingUsers,
     connect,
     disconnect,
+    retry,
+    clearError,
     updatePresence,
     addComment,
     replyToComment,
@@ -271,7 +299,20 @@ export const CollaborationProvider: React.FC<CollaborationProviderProps> = ({ ch
     getActiveUsersInLocation,
     getCommentsForContent,
     isUserTyping
-  };
+  }), [
+    isConnected,
+    isLoading,
+    error,
+    reconnectAttempts,
+    activeUsers,
+    currentUserPresence,
+    comments,
+    liveEdits,
+    typingUsers,
+    connect,
+    retry,
+    clearError
+  ]);
 
   return (
     <CollaborationContext.Provider value={value}>

@@ -1,247 +1,312 @@
-// Real-time collaboration service
-// In production, this would use WebSockets or a service like Socket.io
+interface User {
+  id: string;
+  name: string;
+  avatar?: string;
+  email?: string;
+}
 
-export interface UserPresence {
+export interface UserPresence extends User {
   userId: string;
   userName: string;
   userAvatar?: string;
-  location: string; // page/section where user is active
-  lastSeen: string;
   isOnline: boolean;
+  lastSeen: string;
+  location: string;
+  color: string;
   cursor?: { x: number; y: number };
-  color: string; // unique color for this user
-}
-
-export interface CollaborationEvent {
-  id: string;
-  type: 'user_join' | 'user_leave' | 'content_edit' | 'cursor_move' | 'comment_add';
-  userId: string;
-  timestamp: string;
-  data: any;
-}
-
-export interface LiveEdit {
-  id: string;
-  contentId: string;
-  userId: string;
-  operation: 'insert' | 'delete' | 'replace';
-  position: number;
-  content: string;
-  timestamp: string;
 }
 
 export interface Comment {
   id: string;
-  contentId: string;
   userId: string;
   userName: string;
   userAvatar?: string;
+  contentId: string;
   content: string;
-  position?: { x: number; y: number };
   timestamp: string;
-  replies: Comment[];
+  position?: { x: number; y: number };
   isResolved: boolean;
+  replies: Comment[];
+  parentId?: string;
 }
 
-// User colors for collaboration
-const USER_COLORS = [
-  '#EF4444', '#F97316', '#F59E0B', '#EAB308',
-  '#84CC16', '#22C55E', '#10B981', '#14B8A6',
-  '#06B6D4', '#0EA5E9', '#3B82F6', '#6366F1',
-  '#8B5CF6', '#A855F7', '#D946EF', '#EC4899'
-];
+export interface LiveEdit {
+  id: string;
+  userId: string;
+  userName: string;
+  contentId: string;
+  operation: 'insert' | 'delete' | 'replace';
+  data: any;
+  timestamp: string;
+  position?: { line: number; column: number };
+}
 
-export class CollaborationService {
-  private presenceData: Map<string, UserPresence> = new Map();
+export interface CollaborationEvent {
+  type: 'user_join' | 'user_leave' | 'presence_update' | 'content_edit' | 'comment_add' | 'typing_start' | 'typing_stop' | 'cursor_move';
+  data: any;
+  timestamp: string;
+}
+
+export interface Cursor {
+  userId: string;
+  userName: string;
+  color: string;
+  cursor: { x: number; y: number };
+}
+
+class CollaborationService {
+  private ws: WebSocket | null = null;
+  private currentUser: User | null = null;
+  private activeUsers: Map<string, UserPresence> = new Map();
   private comments: Map<string, Comment[]> = new Map();
   private liveEdits: Map<string, LiveEdit[]> = new Map();
-  private eventHandlers: Map<string, Function[]> = new Map();
-  private currentUser: { id: string; name: string; avatar?: string } | null = null;
-  private isConnected = false;
+  private typingUsers: Map<string, Set<string>> = new Map();
+  private cursors: Map<string, Cursor> = new Map();
+  private eventListeners: Map<string, Function[]> = new Map();
+  private isConnected: boolean = false;
+  private reconnectAttempts: number = 0;
+  private maxReconnectAttempts: number = 5;
+  private reconnectDelay: number = 1000;
 
-  // Mock WebSocket simulation
-  private mockEvents: CollaborationEvent[] = [];
+  // Color palette for users
+  private userColors = [
+    '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6',
+    '#EC4899', '#06B6D4', '#84CC16', '#F97316', '#6366F1'
+  ];
 
-  constructor() {
+  private getNextColor(): string {
+    const usedColors = Array.from(this.activeUsers.values()).map(u => u.color);
+    const availableColors = this.userColors.filter(color => !usedColors.includes(color));
+    return availableColors.length > 0 ? availableColors[0] : this.userColors[Math.floor(Math.random() * this.userColors.length)];
+  }
+
+  async connect(user: User): Promise<boolean> {
+    try {
+      this.currentUser = user;
+      
+      // For now, simulate WebSocket connection since we don't have a backend
+      // In production, this would connect to a real WebSocket server
+      await this.simulateConnection();
+      
+      this.isConnected = true;
+      this.reconnectAttempts = 0;
+
+      // Add current user to active users
+      this.addUserPresence(user);
+
+      // Start simulating activity
+      this.simulateActivity();
+
+      this.emit('user_join', { user });
+      return true;
+    } catch (error) {
+      console.error('Failed to connect:', error);
+      this.handleConnectionError();
+      return false;
+    }
+  }
+
+  private async simulateConnection(): Promise<void> {
+    // Simulate connection delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Initialize with some mock data
     this.initializeMockData();
   }
 
-  private initializeMockData() {
-    // Simulate some active users
+  private initializeMockData(): void {
+    // Add some mock users
     const mockUsers = [
-      { id: 'user-2', name: 'John Editor', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=50' },
-      { id: 'user-3', name: 'Jane Contributor', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=50' }
+      { id: '2', name: 'Sarah Chen', avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b047?w=100&h=100&fit=crop&crop=face' },
+      { id: '3', name: 'Mike Johnson', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face' },
+      { id: '4', name: 'Emma Wilson', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face' }
     ];
 
-    mockUsers.forEach((user, index) => {
-      this.presenceData.set(user.id, {
-        userId: user.id,
-        userName: user.name,
-        userAvatar: user.avatar,
-        location: index === 0 ? '/calendar' : '/ideation',
-        lastSeen: new Date(Date.now() - Math.random() * 300000).toISOString(),
-        isOnline: Math.random() > 0.3,
-        color: USER_COLORS[index % USER_COLORS.length]
-      });
+    mockUsers.forEach(user => {
+      if (user.id !== this.currentUser?.id) {
+        this.addUserPresence(user, '/collaboration');
+      }
     });
 
-    // Mock comments
-    this.comments.set('content-1', [
-      {
-        id: 'comment-1',
-        contentId: 'content-1',
-        userId: 'user-2',
-        userName: 'John Editor',
-        userAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=50',
-        content: 'This looks great! Should we add more details about the target audience?',
-        timestamp: new Date(Date.now() - 3600000).toISOString(),
-        replies: [],
-        isResolved: false
-      }
-    ]);
+    // Add some mock comments
+    this.addMockComments();
   }
 
-  // Connection management
-  async connect(user: { id: string; name: string; avatar?: string }): Promise<boolean> {
-    this.currentUser = user;
-    this.isConnected = true;
-
-    // Add current user to presence
-    this.presenceData.set(user.id, {
+  private addUserPresence(user: User, location: string = window.location.pathname): void {
+    const presence: UserPresence = {
+      ...user,
       userId: user.id,
       userName: user.name,
       userAvatar: user.avatar,
-      location: window.location.pathname,
-      lastSeen: new Date().toISOString(),
       isOnline: true,
-      color: USER_COLORS[Math.floor(Math.random() * USER_COLORS.length)]
-    });
+      lastSeen: new Date().toISOString(),
+      location,
+      color: this.getNextColor(),
+      cursor: { x: 0, y: 0 }
+    };
 
-    this.emit('user_join', { user });
-    return true;
+    this.activeUsers.set(user.id, presence);
+    this.emit('presence_update', { presence });
+  }
+
+  private addMockComments(): void {
+    const mockComments: Comment[] = [
+      {
+        id: 'comment-1',
+        userId: '2',
+        userName: 'Sarah Chen',
+        userAvatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b047?w=100&h=100&fit=crop&crop=face',
+        contentId: 'content-1',
+        content: 'Love the new design direction! The color palette really captures our brand essence.',
+        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        isResolved: false,
+        replies: []
+      },
+      {
+        id: 'comment-2',
+        userId: '3',
+        userName: 'Mike Johnson',
+        userAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
+        contentId: 'content-1',
+        content: 'Should we consider accessibility contrast ratios for the text?',
+        timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+        isResolved: false,
+        replies: []
+      }
+    ];
+
+    this.comments.set('content-1', mockComments);
   }
 
   disconnect(): void {
+    if (this.ws) {
+      this.ws.close();
+      this.ws = null;
+    }
+    
     if (this.currentUser) {
-      const presence = this.presenceData.get(this.currentUser.id);
-      if (presence) {
-        presence.isOnline = false;
-        presence.lastSeen = new Date().toISOString();
-      }
       this.emit('user_leave', { userId: this.currentUser.id });
     }
+
     this.isConnected = false;
+    this.activeUsers.clear();
+    this.comments.clear();
+    this.liveEdits.clear();
+    this.typingUsers.clear();
+    this.cursors.clear();
     this.currentUser = null;
   }
 
-  // Presence tracking
-  updatePresence(location: string, cursor?: { x: number; y: number }): void {
-    if (!this.currentUser) return;
+  private handleConnectionError(): void {
+    this.isConnected = false;
+    
+    if (this.reconnectAttempts < this.maxReconnectAttempts) {
+      setTimeout(() => {
+        this.reconnectAttempts++;
+        if (this.currentUser) {
+          this.connect(this.currentUser);
+        }
+      }, this.reconnectDelay * Math.pow(2, this.reconnectAttempts));
+    }
+  }
 
-    const presence = this.presenceData.get(this.currentUser.id);
+  updatePresence(location: string, cursor?: { x: number; y: number }): void {
+    if (!this.currentUser || !this.isConnected) return;
+
+    const presence = this.activeUsers.get(this.currentUser.id);
     if (presence) {
       presence.location = location;
       presence.lastSeen = new Date().toISOString();
-      presence.cursor = cursor;
-      this.emit('presence_update', { userId: this.currentUser.id, location, cursor });
+      if (cursor) {
+        presence.cursor = cursor;
+      }
+      
+      this.activeUsers.set(this.currentUser.id, presence);
+      this.emit('presence_update', { presence });
     }
   }
 
-  getActiveUsers(location?: string): UserPresence[] {
-    const users = Array.from(this.presenceData.values());
-    return users.filter(user => {
-      if (!user.isOnline) return false;
-      if (location && user.location !== location) return false;
-      return true;
-    });
-  }
+  updateCursor(x: number, y: number): void {
+    if (!this.currentUser || !this.isConnected) return;
 
-  getUserPresence(userId: string): UserPresence | null {
-    return this.presenceData.get(userId) || null;
-  }
-
-  // Live editing
-  sendEdit(contentId: string, operation: LiveEdit['operation'], position: number, content: string): void {
-    if (!this.currentUser) return;
-
-    const edit: LiveEdit = {
-      id: `edit-${Date.now()}`,
-      contentId,
+    const cursor: Cursor = {
       userId: this.currentUser.id,
-      operation,
-      position,
-      content,
-      timestamp: new Date().toISOString()
+      userName: this.currentUser.name,
+      color: this.activeUsers.get(this.currentUser.id)?.color || '#3B82F6',
+      cursor: { x, y }
     };
 
-    if (!this.liveEdits.has(contentId)) {
-      this.liveEdits.set(contentId, []);
-    }
-    this.liveEdits.get(contentId)!.push(edit);
-
-    this.emit('content_edit', edit);
+    this.cursors.set(this.currentUser.id, cursor);
+    this.emit('cursor_move', { cursor });
   }
 
-  getLiveEdits(contentId: string): LiveEdit[] {
-    return this.liveEdits.get(contentId) || [];
+  getActiveCursors(): Cursor[] {
+    return Array.from(this.cursors.values())
+      .filter(cursor => cursor.userId !== this.currentUser?.id);
   }
 
-  // Comments
   addComment(contentId: string, content: string, position?: { x: number; y: number }): Comment | null {
-    if (!this.currentUser) return null;
+    if (!this.currentUser || !this.isConnected) return null;
 
     const comment: Comment = {
       id: `comment-${Date.now()}`,
-      contentId,
       userId: this.currentUser.id,
       userName: this.currentUser.name,
       userAvatar: this.currentUser.avatar,
+      contentId,
       content,
-      position,
       timestamp: new Date().toISOString(),
-      replies: [],
-      isResolved: false
+      position,
+      isResolved: false,
+      replies: []
     };
 
-    if (!this.comments.has(contentId)) {
-      this.comments.set(contentId, []);
-    }
-    this.comments.get(contentId)!.push(comment);
+    const contentComments = this.comments.get(contentId) || [];
+    contentComments.push(comment);
+    this.comments.set(contentId, contentComments);
 
-    this.emit('comment_add', comment);
+    this.emit('comment_add', { comment });
     return comment;
   }
 
   replyToComment(commentId: string, content: string): Comment | null {
-    if (!this.currentUser) return null;
+    if (!this.currentUser || !this.isConnected) return null;
 
-    const reply: Comment = {
-      id: `reply-${Date.now()}`,
-      contentId: '',
-      userId: this.currentUser.id,
-      userName: this.currentUser.name,
-      userAvatar: this.currentUser.avatar,
-      content,
-      timestamp: new Date().toISOString(),
-      replies: [],
-      isResolved: false
-    };
+    // Find the parent comment
+    let parentComment: Comment | null = null;
+    let contentId = '';
 
-    // Find the parent comment and add reply
-    for (const [contentId, comments] of this.comments) {
-      const parentComment = comments.find(c => c.id === commentId);
-      if (parentComment) {
-        parentComment.replies.push(reply);
-        this.emit('comment_reply', { commentId, reply });
-        return reply;
+    for (const [cId, comments] of this.comments.entries()) {
+      const found = comments.find(c => c.id === commentId);
+      if (found) {
+        parentComment = found;
+        contentId = cId;
+        break;
       }
     }
 
-    return null;
+    if (!parentComment) return null;
+
+    const reply: Comment = {
+      id: `reply-${Date.now()}`,
+      userId: this.currentUser.id,
+      userName: this.currentUser.name,
+      userAvatar: this.currentUser.avatar,
+      contentId,
+      content,
+      timestamp: new Date().toISOString(),
+      isResolved: false,
+      replies: [],
+      parentId: commentId
+    };
+
+    parentComment.replies.push(reply);
+    this.emit('comment_add', { comment: reply });
+    return reply;
   }
 
   resolveComment(commentId: string): boolean {
-    for (const [contentId, comments] of this.comments) {
+    for (const comments of this.comments.values()) {
       const comment = comments.find(c => c.id === commentId);
       if (comment) {
         comment.isResolved = true;
@@ -252,114 +317,145 @@ export class CollaborationService {
     return false;
   }
 
+  startTyping(contentId: string): void {
+    if (!this.currentUser || !this.isConnected) return;
+
+    const users = this.typingUsers.get(contentId) || new Set();
+    users.add(this.currentUser.id);
+    this.typingUsers.set(contentId, users);
+
+    this.emit('typing_start', { userId: this.currentUser.id, contentId });
+
+    // Auto-stop typing after 3 seconds
+    setTimeout(() => {
+      this.stopTyping(contentId);
+    }, 3000);
+  }
+
+  stopTyping(contentId: string): void {
+    if (!this.currentUser || !this.isConnected) return;
+
+    const users = this.typingUsers.get(contentId);
+    if (users) {
+      users.delete(this.currentUser.id);
+      if (users.size === 0) {
+        this.typingUsers.delete(contentId);
+      }
+    }
+
+    this.emit('typing_stop', { userId: this.currentUser.id, contentId });
+  }
+
+  getActiveUsers(location?: string): UserPresence[] {
+    const users = Array.from(this.activeUsers.values());
+    if (location) {
+      return users.filter(user => user.location === location);
+    }
+    return users;
+  }
+
+  getUserPresence(userId: string): UserPresence | null {
+    return this.activeUsers.get(userId) || null;
+  }
+
   getComments(contentId: string): Comment[] {
     return this.comments.get(contentId) || [];
   }
 
-  // Event handling
-  on(event: string, handler: Function): void {
-    if (!this.eventHandlers.has(event)) {
-      this.eventHandlers.set(event, []);
-    }
-    this.eventHandlers.get(event)!.push(handler);
+  getLiveEdits(contentId: string): LiveEdit[] {
+    return this.liveEdits.get(contentId) || [];
   }
 
-  off(event: string, handler: Function): void {
-    const handlers = this.eventHandlers.get(event);
-    if (handlers) {
-      const index = handlers.indexOf(handler);
-      if (index > -1) {
-        handlers.splice(index, 1);
-      }
-    }
+  getTypingUsers(contentId: string): string[] {
+    const users = this.typingUsers.get(contentId);
+    return users ? Array.from(users) : [];
+  }
+
+  // Event system
+  on(event: string, callback: Function): void {
+    const listeners = this.eventListeners.get(event) || [];
+    listeners.push(callback);
+    this.eventListeners.set(event, listeners);
+  }
+
+  off(event: string, callback: Function): void {
+    const listeners = this.eventListeners.get(event) || [];
+    const filtered = listeners.filter(cb => cb !== callback);
+    this.eventListeners.set(event, filtered);
   }
 
   private emit(event: string, data: any): void {
-    const handlers = this.eventHandlers.get(event);
-    if (handlers) {
-      handlers.forEach(handler => handler(data));
-    }
+    const listeners = this.eventListeners.get(event) || [];
+    listeners.forEach(callback => {
+      try {
+        callback(data);
+      } catch (error) {
+        console.error(`Error in event listener for ${event}:`, error);
+      }
+    });
   }
 
-  // Cursor tracking
-  updateCursor(x: number, y: number): void {
-    if (!this.currentUser) return;
+  // Simulate activity for demo purposes
+  simulateActivity(): void {
+    if (!this.isConnected) return;
 
-    const presence = this.presenceData.get(this.currentUser.id);
-    if (presence) {
-      presence.cursor = { x, y };
-      this.emit('cursor_move', { userId: this.currentUser.id, cursor: { x, y } });
-    }
-  }
+    // Simulate typing activity
+    setInterval(() => {
+      const users = Array.from(this.activeUsers.values())
+        .filter(u => u.userId !== this.currentUser?.id);
+      
+      if (users.length > 0 && Math.random() > 0.8) {
+        const randomUser = users[Math.floor(Math.random() * users.length)];
+        const contentId = `content-${Math.floor(Math.random() * 3) + 1}`;
+        
+        this.emit('typing_start', { userId: randomUser.userId, contentId });
+        
+        setTimeout(() => {
+          this.emit('typing_stop', { userId: randomUser.userId, contentId });
+        }, 2000);
+      }
+    }, 5000);
 
-  getActiveCursors(): Array<{ userId: string; userName: string; color: string; cursor: { x: number; y: number } }> {
-    const users = Array.from(this.presenceData.values());
-    return users
-      .filter(user => user.isOnline && user.cursor && user.userId !== this.currentUser?.id)
-      .map(user => ({
-        userId: user.userId,
-        userName: user.userName,
-        color: user.color,
-        cursor: user.cursor!
-      }));
-  }
-
-  // Typing indicators
-  startTyping(contentId: string): void {
-    if (!this.currentUser) return;
-    this.emit('typing_start', { userId: this.currentUser.id, contentId });
-  }
-
-  stopTyping(contentId: string): void {
-    if (!this.currentUser) return;
-    this.emit('typing_stop', { userId: this.currentUser.id, contentId });
+    // Simulate cursor movement for other users
+    setInterval(() => {
+      const users = Array.from(this.activeUsers.values())
+        .filter(u => u.userId !== this.currentUser?.id);
+      
+      users.forEach(user => {
+        if (Math.random() > 0.9) {
+          const cursor: Cursor = {
+            userId: user.userId,
+            userName: user.userName,
+            color: user.color,
+            cursor: {
+              x: Math.random() * window.innerWidth,
+              y: Math.random() * window.innerHeight
+            }
+          };
+          
+          this.cursors.set(user.userId, cursor);
+          this.emit('cursor_move', { cursor });
+        }
+      });
+    }, 1000);
   }
 
   // Connection status
-  isConnectionHealthy(): boolean {
-    return this.isConnected;
+  getConnectionStatus(): { isConnected: boolean; reconnectAttempts: number } {
+    return {
+      isConnected: this.isConnected,
+      reconnectAttempts: this.reconnectAttempts
+    };
   }
 
-  // Mock real-time updates (simulate network activity)
-  simulateActivity(): void {
-    setInterval(() => {
-      if (!this.isConnected) return;
-
-      // Simulate random user activity
-      const users = Array.from(this.presenceData.values());
-      const activeUsers = users.filter(u => u.isOnline);
-      
-      if (activeUsers.length > 0) {
-        const randomUser = activeUsers[Math.floor(Math.random() * activeUsers.length)];
-        
-        // Simulate cursor movement
-        if (Math.random() > 0.7) {
-          randomUser.cursor = {
-            x: Math.random() * window.innerWidth,
-            y: Math.random() * window.innerHeight
-          };
-          this.emit('cursor_move', { 
-            userId: randomUser.userId, 
-            cursor: randomUser.cursor 
-          });
-        }
-
-        // Simulate typing
-        if (Math.random() > 0.9) {
-          this.emit('typing_start', { 
-            userId: randomUser.userId, 
-            contentId: 'content-' + Math.floor(Math.random() * 3 + 1)
-          });
-          
-          setTimeout(() => {
-            this.emit('typing_stop', { 
-              userId: randomUser.userId, 
-              contentId: 'content-' + Math.floor(Math.random() * 3 + 1)
-            });
-          }, 2000 + Math.random() * 3000);
-        }
-      }
-    }, 2000);
+  // Analytics
+  getCollaborationAnalytics() {
+    return {
+      activeUsers: this.activeUsers.size,
+      totalComments: Array.from(this.comments.values()).reduce((sum, comments) => sum + comments.length, 0),
+      totalEdits: Array.from(this.liveEdits.values()).reduce((sum, edits) => sum + edits.length, 0),
+      currentlyTyping: Array.from(this.typingUsers.values()).reduce((sum, users) => sum + users.size, 0)
+    };
   }
 }
 

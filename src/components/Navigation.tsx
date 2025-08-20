@@ -10,7 +10,8 @@ import {
   Users,
   Home,
   PenTool,
-  LogIn
+  LogIn,
+  Shield
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import UserMenu from './auth/UserMenu';
@@ -30,6 +31,7 @@ const Navigation = () => {
     { path: '/library', icon: FolderOpen, label: 'Library' },
     { path: '/analytics', icon: BarChart3, label: 'Analytics' },
     { path: '/collaboration', icon: Users, label: 'Team' },
+    { path: '/security', icon: Shield, label: 'Security' },
   ];
 
   return (
