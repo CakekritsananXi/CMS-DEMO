@@ -12,7 +12,9 @@ interface CollaborationContextType {
   // Connection state
   isConnected: boolean;
   isLoading: boolean;
-  
+  error: string | null;
+  reconnectAttempts: number;
+
   // Users and presence
   activeUsers: UserPresence[];
   currentUserPresence: UserPresence | null;
