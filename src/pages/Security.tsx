@@ -429,9 +429,11 @@ const Security: React.FC = () => {
         {/* Tab Content */}
         <div className="min-h-[400px]">
           {activeTab === 'dashboard' && renderDashboard()}
-          {activeTab === 'mobile' && renderMobileOptimization()}
+          {activeTab === 'scans' && renderScans()}
           {activeTab === 'automated' && <AutomatedScanning />}
-          {/* Other tabs would be rendered here */}
+          {activeTab === 'mobile' && renderMobileOptimization()}
+          {activeTab === 'reports' && renderReports()}
+          {activeTab === 'settings' && renderSettings()}
         </div>
 
         {/* Mobile-Optimized Scan Details Modal */}
